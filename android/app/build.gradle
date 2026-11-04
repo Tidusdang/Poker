@@ -1,5 +1,7 @@
 apply plugin: 'com.android.application'
 
+def ciBuildNumber = Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+
 android {
     namespace = "com.tidusdang.xito24"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -8,8 +10,8 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Mỗi lần GitHub Actions build, số phiên bản tăng để cài đè được lên bản cũ
-        versionCode (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
-        versionName "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        versionCode = ciBuildNumber
+        versionName = "1.0." + ciBuildNumber
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
