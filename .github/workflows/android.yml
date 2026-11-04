@@ -1,0 +1,67 @@
+name: Android APK
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Cài gói
+        run: npm ci
+
+      - name: Kiểm tra luật chơi
+        run: npm test
+
+      - name: Đóng gói web vào app
+        run: |
+          npm run build:web
+          npx cap sync android
+
+      - name: Build APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Đặt tên file
+        run: cp android/app/build/outputs/apk/release/app-release.apk XiTo24.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XiTo24-apk
+          path: XiTo24.apk
+
+      - name: Cập nhật bản phát hành "android-latest"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android-latest --yes --cleanup-tag || true
+          gh release create android-latest XiTo24.apk \
+            --target "${{ github.sha }}" \
+            --prerelease \
+            --title "Xì Tố 24 · Android (bản mới nhất)" \
+            --notes "Bản build tự động từ nhánh ${{ github.ref_name }}, lần build số ${{ github.run_number }}. Tải XiTo24.apk về điện thoại Android rồi mở để cài (cho phép cài từ nguồn không xác định nếu máy hỏi)."

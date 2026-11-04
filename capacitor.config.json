@@ -1,0 +1,16 @@
+{
+  "appId": "com.tidusdang.xito24",
+  "appName": "Xì Tố 24",
+  "webDir": "www",
+  "backgroundColor": "#170c0a",
+  "android": {
+    "backgroundColor": "#170c0a"
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover",
+      "style": "DARK"
+    }
+  }
+}

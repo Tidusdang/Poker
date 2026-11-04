@@ -57,7 +57,8 @@ button { cursor: pointer; }
 .brand h1 { font-family: var(--display); font-weight: 700; font-size: 34px; line-height: 1; margin: 0; letter-spacing: 0.01em; color: var(--eggshell); }
 .brand h1 b { color: var(--gold); font-weight: 700; }
 .deckline { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
-.deckline span { color: var(--gold); }
+.deckline #ruleLine, .deckline b { color: var(--gold); font-weight: inherit; }
+.deckranks { color: var(--muted); }
 .top-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .btn { border: 1px solid var(--line); background: var(--lacquer-2); padding: 8px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; transition: border-color .15s, background .15s; }
@@ -105,10 +106,10 @@ button { cursor: pointer; }
   display: flex; flex-direction: column; gap: 14px;
 }
 .opps { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 10px; }
-@media (max-width: 640px) { .opps { grid-template-columns: minmax(0, 1fr); } }
 
 .seat { --w: 46px; position: relative; border: 1px solid transparent; border-radius: 12px; padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 8px; align-items: center; transition: border-color .2s, background .2s; min-width: 0; }
-.me .seat { --w: 62px; padding-bottom: 22px; }
+.me .seat { --w: 62px; padding-bottom: 12px; }
+.me .cards { margin-bottom: 16px; }
 @media (max-width: 640px) { .seat { --w: 40px; } .me .seat { --w: 54px; } }
 .seat.turn { border-color: var(--gold); background: #2a150f88; }
 .seat.folded .cards { opacity: .35; filter: grayscale(.6); }
@@ -270,6 +271,7 @@ button { cursor: pointer; }
 .pill.fold { background: #3a1d18; color: var(--bad); border: 1px solid #6a2a20; }
 .pill.call, .pill.check { background: #1d2a20; color: var(--good); border: 1px solid #355a40; }
 .pill.raise { background: var(--cinnabar); color: var(--eggshell); border: 1px solid var(--cinnabar); }
+.pill.meh { background: #2e2412; color: var(--warn); border: 1px solid #6b5426; }
 .advice p { margin: 0; font-size: 13px; color: var(--eggshell-2); }
 .hidden-note { font-size: 13px; color: var(--muted); margin: 0; }
 .feedback { border-radius: 8px; padding: 8px 10px; font-size: 13px; border: 1px solid var(--line); }
@@ -305,6 +307,60 @@ table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng tr
 .log .bet { color: #f3a493; }
 .log .win { color: var(--good); font-weight: 600; }
 
+/* ---------- Điện thoại: thanh tab dưới đáy, cụm nút cố định, bàn gọn một màn hình ---------- */
+.tabbar, .coachstrip { display: none; }
+.dock { display: flex; flex-direction: column; gap: 10px; }
+button, .card, .seg span, .rule-opt { touch-action: manipulation; }
+@media (max-width: 960px) {
+  body { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+  .tabbar {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    padding: 8px max(16px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+    background: var(--lacquer-2); border-top: 1px solid var(--line);
+  }
+  .tabbar button { position: relative; border: 0; background: transparent; color: var(--muted); padding: 11px 8px; border-radius: 8px; font-weight: 600; font-size: 14px; }
+  .tabbar button[aria-pressed="true"] { color: var(--gold); background: #2c1a12; }
+  .tabbar .dot { position: absolute; top: 9px; margin-left: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--cinnabar); }
+  .main[data-tab="table"] .coach { display: none; }
+  .main[data-tab="coach"] .table { display: none; }
+  .dock {
+    position: sticky; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); z-index: 6;
+    margin: 0 -10px -16px; padding: 10px 10px 14px; border-radius: 0 0 18px 18px;
+    background: #1d0d0a; border-top: 1px solid var(--line);
+  }
+  .dock .actions { border-top: 0; padding-top: 0; }
+  .coachstrip { display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; font-size: 13px; color: var(--eggshell-2); line-height: 1.35; }
+  .coachstrip:empty { display: none; }
+  .coachstrip .n { font-family: var(--mono); font-weight: 600; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .coachstrip .pill { margin-left: auto; }
+}
+@media (max-width: 640px) {
+  .top { flex-wrap: nowrap; align-items: center; }
+  .brand { flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
+  .brand h1 { font-size: 27px; }
+  .deckline { font-size: 11px; }
+  .top-actions { flex-wrap: nowrap; }
+  .top-actions .btn { padding: 7px 11px; }
+  .wide-only { display: none; }
+  .table { padding: 12px 10px 16px; gap: 10px; }
+  .opps { gap: 4px; }
+  .opps .seat { --w: 34px; padding: 8px 3px; gap: 6px; }
+  .opps .cards { gap: 0; }
+  .opps .cards .card + .card { margin-left: calc(var(--w) * -0.46); }
+  .opps .card .ix { font-size: calc(var(--w) * .4); left: 6%; }
+  .opps .seat-head { gap: 2px 6px; }
+  .opps .seat-name { font-size: 13px; }
+  .opps .seat-style { display: none; }
+  .opps .seat-stack { font-size: 12px; }
+  .opps .showing { font-size: 11px; }
+  .opps .seat-foot { gap: 4px; }
+  .center { padding: 0; gap: 4px; }
+  .pot { font-size: 34px; }
+  .act-row .btn { padding: 13px 8px; flex-basis: 90px; }
+  .raise-row .amt { min-width: 52px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card .flip, .eqbar .fill { transition: none; }
   .tag.thinking, .card.suspense, .card.hole:not(.seen) .back, .banner { animation: none; }
@@ -315,12 +371,12 @@ table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng tr
   <header class="top">
     <div class="brand">
       <h1>Xì Tố <b>24</b></h1>
-      <div class="deckline">9 · 10 · J · Q · K · A &nbsp;×&nbsp; <span>♠ ♥ ♦ ♣</span> &nbsp;·&nbsp; <span id="ruleLine">Luật gốc</span></div>
+      <div class="deckline"><span class="wide-only deckranks">9 · 10 · J · Q · K · A &nbsp;×&nbsp; <b>♠ ♥ ♦ ♣</b> &nbsp;·&nbsp; </span><span id="ruleLine">Luật gốc</span></div>
     </div>
     <div class="top-actions">
-      <button class="btn ghost" id="btnSound" type="button" aria-pressed="false">Âm thanh: tắt</button>
-      <button class="btn ghost" id="btnSettings" type="button" aria-expanded="false" aria-controls="settings">Cài đặt bàn</button>
-      <button class="btn" id="btnNewGame" type="button">Ván mới từ đầu</button>
+      <button class="btn ghost" id="btnSound" type="button" aria-pressed="false" aria-label="Âm thanh">Âm thanh: tắt</button>
+      <button class="btn ghost" id="btnSettings" type="button" aria-expanded="false" aria-controls="settings">Cài đặt<span class="wide-only"> bàn</span></button>
+      <button class="btn wide-only" id="btnNewGame" type="button">Ván mới từ đầu</button>
     </div>
   </header>
 
@@ -381,7 +437,7 @@ table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng tr
     </div>
   </form>
 
-  <div class="main">
+  <div class="main" id="main" data-tab="table">
     <section class="table" aria-label="Bàn chơi">
       <div class="opps" id="opps"></div>
       <div class="center">
@@ -393,7 +449,10 @@ table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng tr
         <div class="banner" id="banner" hidden><small id="bannerWho"></small><strong id="bannerHand"></strong></div>
       </div>
       <div class="me" id="meSeat"></div>
-      <div class="actions" id="actions"></div>
+      <div class="dock">
+        <div class="coachstrip" id="coachStrip" aria-live="polite"></div>
+        <div class="actions" id="actions"></div>
+      </div>
     </section>
 
     <aside class="coach" aria-label="Huấn luyện">
@@ -424,6 +483,11 @@ table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng tr
     </aside>
   </div>
 </div>
+
+<nav class="tabbar" id="tabbar" aria-label="Màn hình">
+  <button type="button" data-tab="table" aria-pressed="true">Bàn chơi</button>
+  <button type="button" data-tab="coach" aria-pressed="false">Huấn luyện<span class="dot" id="coachDot" hidden></span></button>
+</nav>
 
 <div class="fx" id="fx" aria-hidden="true"></div>
 
@@ -461,6 +525,24 @@ table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng tr
     set(k, v) { try { localStorage.setItem('xito24:' + k, JSON.stringify(v)); } catch (e) {} },
   };
 
+  /* ---------------- điện thoại: rung, nút Back, giữ màn hình sáng ---------------- */
+  const Cap = window.Capacitor;
+  const plug = (n) => (Cap && Cap.Plugins ? Cap.Plugins[n] : null);
+  const isNative = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform());
+  function haptic(kind) {
+    try {
+      const H = plug('Haptics');
+      if (isNative && H) { H.impact({ style: kind === 'heavy' ? 'HEAVY' : 'LIGHT' }); return; }
+      if (navigator.vibrate) navigator.vibrate(kind === 'heavy' ? 25 : 8);
+    } catch (e) {}
+  }
+  let wakeLock = null;
+  async function keepAwake() {
+    try { if (navigator.wakeLock && !wakeLock && document.visibilityState === 'visible') { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', keepAwake);
+  document.addEventListener('pointerdown', keepAwake, { once: true });
+
   let cfg = Object.assign({ players: 4, ante: 10, stack: 1000, rules: 'standard' }, store.get('cfg', {}));
   let fx = Object.assign({ squeeze: 'last', speed: 'normal', sound: false }, store.get('fx', {}));
   let stats = Object.assign({ hands: 0, won: 0, net: 0, decisions: 0, good: 0 }, store.get('stats', {}));
@@ -478,7 +560,7 @@ table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng tr
     document.documentElement.style.setProperty('--flip', (0.45 * motion()).toFixed(2) + 's');
     Sound.enabled = !!fx.sound;
     $('btnSound').setAttribute('aria-pressed', String(!!fx.sound));
-    $('btnSound').textContent = 'Âm thanh: ' + (fx.sound ? 'bật' : 'tắt');
+    $('btnSound').innerHTML = '<span aria-hidden="true">♪ </span><span class="wide-only">Âm thanh: </span>' + (fx.sound ? 'bật' : 'tắt');
   }
 
   function freshUi() {
@@ -563,7 +645,7 @@ table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng tr
       motion,
       disabled: () => ui.revealed.has(0) || el.classList.contains('pending') || ui.toSqueeze.has(el.dataset.key),
       onPeek: () => {
-        Sound.play('flip');
+        Sound.play('flip'); haptic('light');
         if (!ui.holeSeen) { ui.holeSeen = true; render(); }
       },
     });
@@ -651,7 +733,7 @@ table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng tr
         overlay: $('squeeze'), canvas: $('sqCanvas'), title, titleEl: $('sqTitle'),
         timerEl: $('sqTimer'), revealBtn: $('sqReveal'), motion,
         autoMs: () => 9000 * pace(),
-        onSound: (s) => Sound.play(s),
+        onSound: (s) => { Sound.play(s); if (s === 'flip') haptic('heavy'); },
       });
       if (gid !== gameId) return;
       ui.toSqueeze.delete(key);
@@ -725,7 +807,7 @@ table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng tr
         analysis = X.analyze(game, 0, 3000);
         const L = game.legal(0);
         raiseTo = clampRaise(defaultRaise(L), L);
-        Sound.play('turn');
+        Sound.play('turn'); haptic('light');
         render();
         return; // chờ người chơi bấm
       }
@@ -744,6 +826,7 @@ table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng tr
     if (!game || game.phase !== 'betting' || game.toAct !== 0 || !analysis || ui.squeezing) return;
     const g = X.grade(analysis, type);
     lastFeedback = { ...g, type, a: analysis };
+    if (currentTab !== 'coach') $('coachDot').hidden = false;
     stats.decisions++;
     if (g.ok === true) stats.good++;
     else if (g.ok === null) stats.good += 0.5;
@@ -791,6 +874,7 @@ table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng tr
       $('bannerHand').textContent = X.describe(w.cards);
       $('banner').hidden = false;
       Sound.play('win');
+      if (main === 0) haptic('heavy');
       await wait(1500);
       $('banner').hidden = true;
       if (gid !== gameId) return;
@@ -844,6 +928,7 @@ table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng tr
     [...$('streets').children].forEach((el, k) => el.classList.toggle('on', game.street >= k + 2));
     $('msg').textContent = message();
     renderActions();
+    renderCoachStrip();
     renderAnalysis();
     renderDist();
     renderStats();
@@ -979,6 +1064,24 @@ table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng tr
     return 'Bạn hòa vốn ván này.';
   }
 
+  function renderCoachStrip() {
+    const el = $('coachStrip');
+    let h = '';
+    if (analysis && !ui.holeSeen) h = 'Nhấn giữ lá úp để xem bài.';
+    else if (analysis && $('showHints').checked) {
+      const a = analysis;
+      h = `Thắng <span class="n">${X.pct(a.equity)}</span>` + (a.toCall ? ` · cần <span class="n">${X.pct(a.potOdds)}</span>` : '') +
+        `<span class="pill ${a.advice}">Gợi ý: ${ACTION_LABEL[a.advice]}</span>`;
+    } else if (analysis) h = 'Gợi ý đang ẩn. Tự ước lượng rồi quyết định.';
+    else if (lastFeedback && !ui.resultsShown) {
+      const f = lastFeedback;
+      const cls = f.ok === true ? 'check' : f.ok === null ? 'meh' : 'fold';
+      const head = f.ok === true ? 'Tốt' : f.ok === null ? 'Tạm được' : 'Xem lại';
+      h = `<span>${ACTION_LABEL[f.type]}: ${f.text}</span><span class="pill ${cls}">${head}</span>`;
+    }
+    if (el.dataset.h !== h) { el.dataset.h = h; el.innerHTML = h; }
+  }
+
   function feedbackHTML() {
     if (!lastFeedback) return '';
     const f = lastFeedback;
@@ -1090,7 +1193,25 @@ table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng tr
   function toggleSettings(open) {
     $('settings').hidden = !open;
     $('btnSettings').setAttribute('aria-expanded', String(open));
-    if (open) syncForm();
+    if (open) { syncForm(); $('settings').scrollIntoView({ block: 'start', behavior: motion() ? 'smooth' : 'auto' }); }
+  }
+  let currentTab = 'table';
+  function setTab(t) {
+    currentTab = t;
+    $('main').dataset.tab = t;
+    document.querySelectorAll('#tabbar [data-tab]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tab === t)));
+    if (t === 'coach') $('coachDot').hidden = true;
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('#tabbar [data-tab]').forEach((b) => (b.onclick = () => setTab(b.dataset.tab)));
+  const AppPlugin = plug('App');
+  if (isNative && AppPlugin && AppPlugin.addListener) {
+    AppPlugin.addListener('backButton', () => {
+      if (!$('squeeze').hidden) { $('sqReveal').click(); return; }
+      if (!$('settings').hidden) { toggleSettings(false); return; }
+      if (currentTab !== 'table') { setTab('table'); return; }
+      AppPlugin.minimizeApp();
+    });
   }
   $('btnSettings').onclick = () => toggleSettings($('settings').hidden);
   $('btnCloseSettings').onclick = () => toggleSettings(false);

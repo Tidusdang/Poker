@@ -1,0 +1,24 @@
+{
+  "name": "xito-24",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Xì tố 24 lá – luyện kỹ năng, có nặn bài",
+  "scripts": {
+    "build:web": "node scripts/build-web.mjs",
+    "test": "node test/engine.test.js",
+    "sync": "npm run build:web && npx cap sync android",
+    "apk": "npm run sync && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/haptics": "^8.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.0",
+    "@fontsource/be-vietnam-pro": "^5.3.0",
+    "@fontsource/cormorant": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0"
+  }
+}
