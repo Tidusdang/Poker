@@ -22,6 +22,15 @@ const jobs = [
   { out: 'assets/icons/maskable-512.png', w: 512, h: 512, mode: 'maskable' },
   { out: 'assets/icons/apple-touch-icon.png', w: 180, h: 180, mode: 'maskable' },
 ];
+const ios = path.join(root, 'ios/App/App/Assets.xcassets');
+if (fs.existsSync(ios)) {
+  jobs.push({ out: 'ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png', w: 1024, h: 1024, mode: 'full', opaque: true });
+  for (const f of fs.readdirSync(path.join(ios, 'Splash.imageset')).filter((f) => f.endsWith('.png'))) {
+    const p = path.join(ios, 'Splash.imageset', f);
+    const { w, h } = pngSize(p);
+    jobs.push({ out: path.relative(root, p), w, h, mode: 'splash', opaque: true });
+  }
+}
 for (const dir of fs.readdirSync(res)) {
   for (const [file, mode] of [['ic_launcher.png', 'legacy'], ['ic_launcher_round.png', 'round'], ['ic_launcher_foreground.png', 'fg'], ['splash.png', 'splash']]) {
     const p = path.join(res, dir, file);
@@ -118,6 +127,12 @@ fs.mkdirSync(path.join(root, 'assets/icons'), { recursive: true });
 for (const j of jobs) {
   const url = await page.evaluate(([w, h, m]) => window.drawIcon(w, h, m), [j.w, j.h, j.mode]);
   fs.writeFileSync(path.join(root, j.out), Buffer.from(url.split(',')[1], 'base64'));
+}
+// icon iOS không được có kênh trong suốt (App Store từ chối) → bỏ kênh alpha bằng Pillow
+const opaque = jobs.filter((j) => j.opaque).map((j) => path.join(root, j.out));
+if (opaque.length) {
+  const { execFileSync } = await import('node:child_process');
+  execFileSync('python3', ['-c', 'import sys\nfrom PIL import Image\nfor f in sys.argv[1:]: Image.open(f).convert("RGB").save(f, optimize=True)', ...opaque]);
 }
 await browser.close();
 console.log(`Đã vẽ ${jobs.length} ảnh`);

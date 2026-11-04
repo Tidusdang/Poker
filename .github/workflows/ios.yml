@@ -1,0 +1,77 @@
+name: iOS IPA
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Cài gói
+        run: npm ci
+
+      - name: Đóng gói web vào app
+        run: |
+          npm run build:web
+          npx cap sync ios
+
+      - name: Build (chưa ký)
+        run: |
+          set -o pipefail
+          xcodebuild -version
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -skipPackagePluginValidation -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            MARKETING_VERSION=1.0.${{ github.run_number }} \
+            archive | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|warning: .*deprecated|\*\* ARCHIVE" || true
+          test -d "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app" || { tail -n 80 "$RUNNER_TEMP/xcodebuild.log"; exit 1; }
+
+      - name: Đóng gói IPA
+        run: |
+          mkdir -p Payload
+          cp -R "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app" Payload/
+          zip -qry XiTo24-unsigned.ipa Payload
+          ls -la XiTo24-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XiTo24-ipa
+          path: XiTo24-unsigned.ipa
+
+      - name: Cập nhật bản phát hành "ios-latest"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete ios-latest --yes --cleanup-tag || true
+          gh release create ios-latest XiTo24-unsigned.ipa \
+            --target "${{ github.sha }}" \
+            --prerelease \
+            --title "Xì Tố 24 · iOS (bản mới nhất, chưa ký)" \
+            --notes "Bản build tự động từ nhánh ${{ github.ref_name }}, lần build số ${{ github.run_number }}. File IPA chưa ký: cài lên iPhone bằng Sideloadly hoặc AltStore với Apple ID của bạn (xem README)."
