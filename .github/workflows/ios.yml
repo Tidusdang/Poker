@@ -15,7 +15,8 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-latest
+    # macos-latest (chip Apple) hay bị hết máy; bản Intel thường có sẵn hơn
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
 
