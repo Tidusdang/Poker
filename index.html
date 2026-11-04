@@ -1,0 +1,715 @@
+<title>Xì Tố 24 Lá</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600;700&family=Be+Vietnam+Pro:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Bàn sơn mài: nền son đen ánh đỏ, viền vàng lá, lá bài màu vỏ trứng.
+   Một thế giới tối duy nhất, cố ý. Bố cục: bàn chơi bên trái, bảng huấn luyện bên phải; điện thoại xếp dọc. */
+:root {
+  --lacquer: #170c0a;
+  --lacquer-2: #24120f;
+  --panel: #1f100d;
+  --line: #4a2a1f;
+  --cinnabar: #b3321f;
+  --cinnabar-deep: #7a1d12;
+  --gold: #d2aa55;
+  --gold-dim: #8e7240;
+  --eggshell: #f1e7d0;
+  --eggshell-2: #e3d5b6;
+  --ink: #1b1310;
+  --red-ink: #a8231a;
+  --text: #f0e4cf;
+  --muted: #a99481;
+  --good: #7fb48f;
+  --warn: #e0b04f;
+  --bad: #e2725f;
+  --display: "Cormorant", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --body: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body {
+  background: var(--lacquer);
+  background-image: radial-gradient(ellipse 80% 60% at 35% 30%, #2b1410 0%, var(--lacquer) 70%);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 28px;
+}
+button, select, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+/* Header */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.brand h1 { font-family: var(--display); font-weight: 700; font-size: 34px; line-height: 1; margin: 0; letter-spacing: 0.01em; color: var(--eggshell); }
+.brand h1 b { color: var(--gold); font-weight: 700; }
+.deckline { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+.deckline span { color: var(--gold); }
+.top-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btn { border: 1px solid var(--line); background: var(--lacquer-2); padding: 8px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; transition: border-color .15s, background .15s; }
+.btn:hover:not(:disabled) { border-color: var(--gold-dim); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn.gold { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+.btn.gold:hover:not(:disabled) { background: #e2bd6a; }
+.btn.red { background: var(--cinnabar); border-color: var(--cinnabar); color: var(--eggshell); }
+.btn.red:hover:not(:disabled) { background: #c8402b; }
+.btn.ghost { background: transparent; }
+
+/* Settings */
+.settings { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+.settings fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.settings legend { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 6px; padding: 0; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg label { position: relative; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: inline-block; border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px; font-size: 13px; cursor: pointer; }
+.seg input:checked + span { border-color: var(--gold); color: var(--gold); background: #2c1a12; }
+.seg input:focus-visible + span { outline: 2px solid var(--gold); outline-offset: 2px; }
+.rule-opt { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; cursor: pointer; }
+.rule-opt small { display: block; color: var(--muted); font-size: 12px; }
+.rule-opt input { accent-color: var(--gold); margin-top: 3px; }
+.settings .row-end { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; align-items: center; }
+.settings .note { color: var(--muted); font-size: 12px; margin-right: auto; }
+
+/* Main layout */
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 14px; align-items: start; }
+@media (max-width: 960px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+/* Table */
+.table {
+  position: relative;
+  border-radius: 18px;
+  padding: 18px 16px 16px;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 45%, #3a1a13 0%, #26110d 55%, #1b0c09 100%);
+  border: 1px solid #5b3a20;
+  box-shadow: inset 0 0 0 5px #1a0c09, inset 0 0 0 6px var(--gold-dim), 0 20px 40px -20px #000;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.opps { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 640px) { .opps { grid-template-columns: minmax(0, 1fr); } }
+
+.seat { position: relative; border: 1px solid transparent; border-radius: 12px; padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 8px; align-items: center; transition: border-color .2s, background .2s; min-width: 0; }
+.seat.turn { border-color: var(--gold); background: #2a150f88; }
+.seat.folded .cards { opacity: .35; filter: grayscale(.6); }
+.seat.win { border-color: var(--gold); background: radial-gradient(ellipse at 50% 0%, #4a2d1488, transparent 70%); }
+.seat-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; justify-content: center; text-align: center; }
+.seat-name { font-weight: 600; font-size: 14px; }
+.seat-style { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.seat-stack { font-family: var(--mono); font-size: 13px; color: var(--gold); font-variant-numeric: tabular-nums; }
+.seat-foot { display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; min-height: 24px; }
+.showing { font-size: 12px; color: var(--eggshell-2); }
+.tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); letter-spacing: .03em; }
+.tag.act-Tố, .tag.act-Tất { border-color: var(--cinnabar); color: #f3a493; }
+.tag.act-Theo { border-color: var(--gold-dim); color: var(--gold); }
+.tag.act-Úp { color: var(--muted); }
+.tag.thinking { border-color: var(--gold); color: var(--gold); animation: pulse 1s ease-in-out infinite; }
+.tag.win { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+.chipbet { font-family: var(--mono); font-size: 12px; color: var(--eggshell); background: var(--cinnabar-deep); border: 1px solid var(--cinnabar); border-radius: 999px; padding: 1px 8px; font-variant-numeric: tabular-nums; }
+.net { font-family: var(--mono); font-size: 12px; font-weight: 600; }
+.net.plus { color: var(--good); } .net.minus { color: var(--bad); }
+@keyframes pulse { 50% { opacity: .45; } }
+
+/* Cards */
+.cards { display: flex; gap: 5px; justify-content: center; flex-wrap: nowrap; }
+.card {
+  --w: 46px;
+  width: var(--w); height: calc(var(--w) * 1.42);
+  border-radius: calc(var(--w) * .1);
+  background: linear-gradient(160deg, var(--eggshell) 0%, var(--eggshell-2) 100%);
+  color: var(--ink);
+  position: relative; flex: none;
+  box-shadow: 0 2px 0 #00000055, 0 6px 14px -6px #000;
+  font-family: var(--display);
+}
+.card.red { color: var(--red-ink); }
+.card .ix { position: absolute; top: 4%; left: 8%; display: flex; flex-direction: column; align-items: center; line-height: .9; font-weight: 700; font-size: calc(var(--w) * .36); }
+.card .ix i { font-style: normal; font-size: .72em; font-family: var(--body); }
+.card .pip { position: absolute; right: 9%; bottom: 6%; font-size: calc(var(--w) * .5); line-height: 1; font-family: var(--body); }
+.card.back {
+  background:
+    repeating-linear-gradient(45deg, transparent 0 5px, #d2aa5522 5px 6px),
+    repeating-linear-gradient(-45deg, transparent 0 5px, #d2aa5522 5px 6px),
+    linear-gradient(160deg, var(--cinnabar) 0%, var(--cinnabar-deep) 100%);
+  box-shadow: inset 0 0 0 3px var(--cinnabar-deep), inset 0 0 0 4px var(--gold-dim), 0 2px 0 #00000055, 0 6px 14px -6px #000;
+}
+.card.hole::after { content: "úp"; position: absolute; left: 50%; bottom: -16px; transform: translateX(-50%); font-family: var(--body); font-size: 10px; color: var(--muted); letter-spacing: .06em; }
+.card.hole { outline: 1px dashed var(--gold-dim); outline-offset: 2px; }
+.card.deal { animation: deal .35s cubic-bezier(.2,.8,.3,1) both; }
+@keyframes deal { from { transform: translateY(-24px) rotate(-6deg); opacity: 0; } }
+.me .card { --w: 62px; }
+@media (max-width: 640px) { .card { --w: 40px; } .me .card { --w: 52px; } }
+
+/* Center */
+.center { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 0; text-align: center; }
+.pot-label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.pot { font-family: var(--display); font-weight: 700; font-size: 40px; line-height: 1; color: var(--gold); font-variant-numeric: tabular-nums; }
+.streets { display: flex; gap: 6px; }
+.streets span { width: 26px; height: 4px; border-radius: 2px; background: var(--line); }
+.streets span.on { background: var(--gold); }
+.msg { font-size: 14px; color: var(--eggshell-2); min-height: 21px; max-width: 60ch; text-wrap: balance; }
+
+.me { border-top: 1px solid var(--line); padding-top: 14px; }
+.me .seat { padding-bottom: 18px; }
+
+/* Action bar */
+.actions { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
+.act-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.act-row .btn { flex: 1 1 120px; padding: 12px 14px; font-size: 15px; }
+.raise-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.raise-row input[type=range] { flex: 1 1 160px; accent-color: var(--gold); min-width: 0; }
+.raise-row .amt { font-family: var(--mono); font-size: 15px; min-width: 64px; text-align: right; color: var(--gold); font-variant-numeric: tabular-nums; }
+.presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.presets .btn { padding: 5px 10px; font-size: 12px; }
+.result-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.result-row p { margin: 0; color: var(--eggshell-2); }
+
+/* Coach panel */
+.coach { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card-panel { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel-h { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.panel-h h2 { margin: 0; font-family: var(--display); font-size: 21px; font-weight: 700; color: var(--eggshell); }
+.toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.toggle input { accent-color: var(--gold); }
+.metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.metric { border-left: 2px solid var(--line); padding-left: 8px; min-width: 0; }
+.metric .k { font-size: 11px; color: var(--muted); letter-spacing: .04em; }
+.metric .v { font-family: var(--mono); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.metric.eq { border-color: var(--gold); }
+.metric.eq .v { color: var(--gold); }
+.eqbar { position: relative; height: 10px; border-radius: 5px; background: #2e1913; overflow: hidden; }
+.eqbar .fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); border-radius: 5px; transition: width .3s; }
+.eqbar .need { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--eggshell); box-shadow: 0 0 0 1px var(--lacquer); }
+.eqlegend { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+.advice { display: flex; gap: 10px; align-items: flex-start; }
+.pill { flex: none; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; letter-spacing: .03em; }
+.pill.fold { background: #3a1d18; color: var(--bad); border: 1px solid #6a2a20; }
+.pill.call, .pill.check { background: #1d2a20; color: var(--good); border: 1px solid #355a40; }
+.pill.raise { background: var(--cinnabar); color: var(--eggshell); border: 1px solid var(--cinnabar); }
+.advice p { margin: 0; font-size: 13px; color: var(--eggshell-2); }
+.hidden-note { font-size: 13px; color: var(--muted); margin: 0; }
+.feedback { border-radius: 8px; padding: 8px 10px; font-size: 13px; border: 1px solid var(--line); }
+.feedback.ok { border-color: #355a40; color: #b9dcc3; }
+.feedback.meh { border-color: #6b5426; color: #ecd39a; }
+.feedback.no { border-color: #6a2a20; color: #f2b3a6; }
+.feedback b { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2px; }
+.idle { font-size: 13px; color: var(--muted); margin: 0; }
+
+.dist { display: flex; flex-direction: column; gap: 4px; }
+.dist-row { display: grid; grid-template-columns: 112px minmax(0, 1fr) 52px; gap: 8px; align-items: center; font-size: 12px; }
+.dist-row .bar { height: 8px; background: #2e1913; border-radius: 4px; overflow: hidden; }
+.dist-row .bar i { display: block; height: 100%; background: var(--gold-dim); border-radius: 4px; }
+.dist-row.cur .bar i { background: var(--gold); }
+.dist-row .p { font-family: var(--mono); text-align: right; color: var(--eggshell-2); font-variant-numeric: tabular-nums; }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.stats .metric .v { font-size: 16px; }
+
+.scroll { overflow-x: auto; }
+table.ranks { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.ranks th { text-align: left; font-weight: 500; font-size: 11px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+table.ranks td { padding: 5px 6px; border-bottom: 1px solid #2f1a14; font-variant-numeric: tabular-nums; }
+table.ranks td.num { font-family: var(--mono); text-align: right; }
+table.ranks th.num { text-align: right; }
+table.ranks tr.flip td:first-child::after { content: " ↑ hiếm hơn hạng trên"; color: var(--warn); font-size: 11px; }
+table.ranks tr.cur td { color: var(--gold); }
+.foot-note { font-size: 12px; color: var(--muted); margin: 0; }
+
+.log { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; padding-right: 4px; }
+.log div { color: var(--eggshell-2); }
+.log .head { color: var(--gold); font-weight: 600; margin-top: 6px; }
+.log .street { color: var(--muted); }
+.log .bet { color: #f3a493; }
+.log .win { color: var(--good); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card.deal, .tag.thinking { animation: none; }
+  .eqbar .fill { transition: none; }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Xì Tố <b>24</b></h1>
+      <div class="deckline">9 · 10 · J · Q · K · A &nbsp;×&nbsp; <span>♠ ♥ ♦ ♣</span> &nbsp;·&nbsp; <span id="ruleLine">Luật gốc</span></div>
+    </div>
+    <div class="top-actions">
+      <button class="btn ghost" id="btnSettings" type="button" aria-expanded="false" aria-controls="settings">Cài đặt bàn</button>
+      <button class="btn" id="btnNewGame" type="button">Ván mới từ đầu</button>
+    </div>
+  </header>
+
+  <form class="settings" id="settings" hidden>
+    <fieldset>
+      <legend>Số người chơi</legend>
+      <div class="seg">
+        <label><input type="radio" name="players" id="pl2" value="2"><span>2</span></label>
+        <label><input type="radio" name="players" id="pl3" value="3"><span>3</span></label>
+        <label><input type="radio" name="players" id="pl4" value="4" checked><span>4</span></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Cược sàn</legend>
+      <div class="seg">
+        <label><input type="radio" name="ante" id="an5" value="5"><span>5</span></label>
+        <label><input type="radio" name="ante" id="an10" value="10" checked><span>10</span></label>
+        <label><input type="radio" name="ante" id="an25" value="25"><span>25</span></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Chip mỗi người</legend>
+      <div class="seg">
+        <label><input type="radio" name="stack" id="st500" value="500"><span>500</span></label>
+        <label><input type="radio" name="stack" id="st1000" value="1000" checked><span>1.000</span></label>
+        <label><input type="radio" name="stack" id="st2000" value="2000"><span>2.000</span></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Xếp hạng bài</legend>
+      <label class="rule-opt"><input type="radio" name="rules" id="ruStd" value="standard" checked><span>Luật gốc<small>Cù lũ &gt; Thùng</small></span></label>
+      <label class="rule-opt"><input type="radio" name="rules" id="ruFull" value="flushOverFull"><span>Thùng ăn cù lũ<small>Kiểu short-deck phổ biến</small></span></label>
+      <label class="rule-opt"><input type="radio" name="rules" id="ruOdds" value="byOdds"><span>Theo xác suất<small>Thùng &gt; Tứ quý</small></span></label>
+    </fieldset>
+    <div class="row-end">
+      <span class="note">Áp dụng khi bắt đầu lại. Bạn luôn ngồi ghế dưới cùng.</span>
+      <button class="btn" type="button" id="btnCloseSettings">Đóng</button>
+      <button class="btn gold" type="submit">Bắt đầu lại với cài đặt này</button>
+    </div>
+  </form>
+
+  <div class="main">
+    <section class="table" aria-label="Bàn chơi">
+      <div class="opps" id="opps"></div>
+      <div class="center">
+        <div class="pot-label">Hũ</div>
+        <div class="pot" id="pot">0</div>
+        <div class="streets" id="streets" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        <div class="msg" id="msg" aria-live="polite"></div>
+      </div>
+      <div class="me" id="meSeat"></div>
+      <div class="actions" id="actions"></div>
+    </section>
+
+    <aside class="coach" aria-label="Huấn luyện">
+      <div class="card-panel">
+        <div class="panel-h">
+          <h2>Phân tích lượt này</h2>
+          <label class="toggle"><input type="checkbox" id="showHints" checked> Hiện gợi ý trước</label>
+        </div>
+        <div id="analysis"></div>
+      </div>
+      <div class="card-panel">
+        <div class="panel-h"><h2>Khả năng về bài</h2></div>
+        <div id="dist"><p class="idle">Xác suất bộ 5 lá cuối cùng của bạn, tính trên các lá chưa lộ.</p></div>
+      </div>
+      <div class="card-panel">
+        <div class="panel-h"><h2>Thành tích</h2></div>
+        <div class="stats" id="stats"></div>
+      </div>
+      <div class="card-panel">
+        <div class="panel-h"><h2>Bảng hạng bộ 24 lá</h2></div>
+        <div class="scroll"><table class="ranks" id="ranksTable"></table></div>
+        <p class="foot-note">Tổng 42.504 bộ 5 lá. Chỉ có 2 sảnh: 9→K và 10→A. Đồng hạng thì so số, rồi so chất lá cao nhất ♠ &gt; ♥ &gt; ♦ &gt; ♣, nên không bao giờ hòa.</p>
+      </div>
+      <div class="card-panel">
+        <div class="panel-h"><h2>Nhật ký</h2></div>
+        <div class="log" id="log"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script src="xito-engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  const X = window.Xito;
+  const $ = (id) => document.getElementById(id);
+  const FREQ = X.handFrequencies();
+  const BOTS = [
+    { name: 'Anh Ba', style: 'tight' },
+    { name: 'Chị Tư', style: 'loose' },
+    { name: 'Bác Sáu', style: 'sly' },
+  ];
+  const ACTION_LABEL = { fold: 'Úp bỏ', check: 'Xem', call: 'Theo', raise: 'Tố' };
+  const fmt = (n) => n.toLocaleString('vi-VN');
+
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('xito24:' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('xito24:' + k, JSON.stringify(v)); } catch (e) {} },
+  };
+
+  let cfg = Object.assign({ players: 4, ante: 10, stack: 1000, rules: 'standard' }, store.get('cfg', {}));
+  let stats = Object.assign({ hands: 0, won: 0, net: 0, decisions: 0, good: 0 }, store.get('stats', {}));
+  let game, analysis = null, lastFeedback = null, seenCards = new Set(), busy = false, timer = null;
+  let raiseTo = 0;
+
+  /* ---------------- setup ---------------- */
+  function newGame() {
+    clearTimeout(timer);
+    const players = [{ name: 'Bạn', human: true, stack: cfg.stack }]
+      .concat(BOTS.slice(0, cfg.players - 1).map((b) => ({ ...b, stack: cfg.stack })));
+    game = new X.Game({ players, ante: cfg.ante, rules: cfg.rules });
+    seenCards = new Set();
+    lastFeedback = null;
+    $('ruleLine').textContent = X.RULESETS[cfg.rules].label;
+    renderRanks();
+    startHand();
+  }
+
+  function startHand() {
+    for (const p of game.players) {
+      if (!p.human && p.stack <= 0) { p.stack = cfg.stack; game.emit(`${p.name} nạp lại ${fmt(cfg.stack)} chip`); }
+    }
+    if (game.players[0].stack <= 0) { render(); return; }
+    lastFeedback = null;
+    game.startHand();
+    loop();
+  }
+
+  /* ---------------- game loop ---------------- */
+  function loop() {
+    clearTimeout(timer);
+    analysis = null;
+    if (game.phase === 'between') {
+      render();
+      timer = setTimeout(() => { game.proceed(); loop(); }, 650);
+      return;
+    }
+    if (game.phase === 'done') { finishHand(); render(); return; }
+    const p = game.players[game.toAct];
+    if (p.human) {
+      analysis = X.analyze(game, 0, 3000);
+      const L = game.legal(0);
+      raiseTo = clampRaise(defaultRaise(L), L);
+      render();
+      return;
+    }
+    render();
+    timer = setTimeout(() => {
+      const d = X.botDecide(game, p.id);
+      game.act(p.id, d.type, d.raiseTo);
+      loop();
+    }, 700 + Math.random() * 500);
+  }
+
+  function humanAct(type) {
+    if (!game || game.phase !== 'betting' || game.toAct !== 0 || !analysis) return;
+    const g = X.grade(analysis, type);
+    lastFeedback = { ...g, type, a: analysis };
+    stats.decisions++;
+    if (g.ok === true) stats.good++;
+    else if (g.ok === null) stats.good += 0.5;
+    game.act(0, type, raiseTo);
+    store.set('stats', stats);
+    loop();
+  }
+
+  function finishHand() {
+    if (game._counted === game.handNo) return;
+    game._counted = game.handNo;
+    const net = game.results.net[0];
+    if (net === undefined) return;
+    stats.hands++;
+    if (net > 0) stats.won++;
+    stats.net += net;
+    store.set('stats', stats);
+  }
+
+  /* ---------------- helpers ---------------- */
+  function defaultRaise(L) {
+    const pot = game.pot;
+    return game.currentBet + Math.max(game.minRaise, Math.round((pot + L.toCall) * 0.5 / 5) * 5);
+  }
+  function clampRaise(v, L) { return Math.max(L.minRaiseTo, Math.min(Math.round(v), L.maxRaiseTo)); }
+
+  function cardHTML(c, opts = {}) {
+    const fresh = !seenCards.has(c + ':' + (opts.who ?? ''));
+    if (opts.who !== undefined) seenCards.add(c + ':' + opts.who);
+    const cls = ['card'];
+    if (fresh) cls.push('deal');
+    if (opts.back) return `<div class="${cls.concat('back').join(' ')}" aria-label="Lá úp"></div>`;
+    if (X.isRed(c)) cls.push('red');
+    if (opts.hole) cls.push('hole');
+    const r = X.RANKS[X.rankOf(c)], s = X.SUITS[X.suitOf(c)];
+    return `<div class="${cls.join(' ')}" aria-label="${r}${s}"><span class="ix">${r}<i>${s}</i></span><span class="pip">${s}</span></div>`;
+  }
+
+  function seatHTML(p) {
+    const res = game.results;
+    const isTurn = game.phase === 'betting' && game.toAct === p.id;
+    const winner = res && res.pots.some((pt) => pt.winners.includes(p.id));
+    const cls = ['seat'];
+    if (isTurn) cls.push('turn');
+    if (p.folded && !p.out) cls.push('folded');
+    if (winner) cls.push('win');
+    const showAll = p.human || p.revealed;
+    const cards = p.cards.map((c, k) => k === 0
+      ? (showAll ? cardHTML(c, { hole: p.human && !p.revealed, who: p.id + 'h' + game.handNo }) : cardHTML(c, { back: true, who: p.id + 'b' + game.handNo }))
+      : cardHTML(c, { who: p.id + 'u' + game.handNo })).join('');
+    const ups = game.ups(p);
+    let showing = '';
+    if (p.revealed && res && res.hands) showing = res.hands[p.id];
+    else if (p.human && p.cards.length) showing = X.describe(p.cards);
+    else if (ups.length && !p.folded) showing = 'Ngửa: ' + X.describe(ups);
+    const tags = [];
+    if (p.out) tags.push('<span class="tag">Hết chip</span>');
+    else if (isTurn && !p.human) tags.push('<span class="tag thinking">Đang nghĩ…</span>');
+    else if (p.lastAction) tags.push(`<span class="tag act-${p.lastAction.split(' ')[0]}">${p.lastAction}</span>`);
+    if (p.bet > 0) tags.push(`<span class="chipbet" title="Cược vòng này">${fmt(p.bet)}</span>`);
+    if (res && res.net[p.id] !== undefined) {
+      const n = res.net[p.id];
+      if (winner) tags.unshift('<span class="tag win">Ăn hũ</span>');
+      tags.push(`<span class="net ${n > 0 ? 'plus' : n < 0 ? 'minus' : ''}">${n > 0 ? '+' : ''}${fmt(n)}</span>`);
+    }
+    const style = p.style ? `<span class="seat-style">${X.STYLES[p.style].label}</span>` : '';
+    return `<div class="${cls.join(' ')}">
+      <div class="seat-head"><span class="seat-name">${p.name}</span>${style}<span class="seat-stack">${fmt(p.stack)}</span></div>
+      <div class="cards">${cards || '<div style="height:58px"></div>'}</div>
+      <div class="seat-foot">${showing ? `<span class="showing">${showing}</span>` : ''}${tags.join('')}</div>
+    </div>`;
+  }
+
+  /* ---------------- render ---------------- */
+  function render() {
+    const opps = game.players.filter((p) => !p.human);
+    $('opps').style.setProperty('--n', opps.length);
+    $('opps').innerHTML = opps.map(seatHTML).join('');
+    $('meSeat').innerHTML = seatHTML(game.players[0]);
+    $('pot').textContent = fmt(game.phase === 'done' ? game.results.pots.reduce((s, p) => s + p.amount, 0) : game.pot);
+    [...$('streets').children].forEach((el, k) => el.classList.toggle('on', game.street >= k + 2));
+    $('msg').textContent = message();
+    renderActions();
+    renderAnalysis();
+    renderDist();
+    renderStats();
+    renderLog();
+  }
+
+  function message() {
+    const me = game.players[0];
+    if (me.stack <= 0 && game.phase !== 'betting' && game.phase !== 'between') return 'Bạn đã hết chip.';
+    if (game.phase === 'done') {
+      const pts = game.results.pots;
+      const w = game.players[pts[pts.length - 1].winners[0]];
+      return game.results.byFold ? `${w.name} ăn hũ vì không ai theo.` : `${w.name} thắng với ${X.describe(w.cards)}.`;
+    }
+    if (game.phase === 'between') return game.street >= 5 ? 'Lật bài so…' : 'Chia thêm một lá ngửa…';
+    if (game.phase === 'betting') {
+      const p = game.players[game.toAct];
+      if (p.human) {
+        const L = game.legal(0);
+        return L.toCall > 0 ? `Tới lượt bạn: cần ${fmt(L.callAmt)} để theo.` : 'Tới lượt bạn: xem hoặc tố.';
+      }
+      return `${p.name} đang cân nhắc…`;
+    }
+    return '';
+  }
+
+  function renderActions() {
+    const el = $('actions');
+    const me = game.players[0];
+    if (game.phase === 'done' || (game.phase === 'idle')) {
+      if (me.stack <= 0) {
+        el.innerHTML = `<div class="result-row"><p>Hết chip. Nạp lại để chơi tiếp, thống kê vẫn giữ.</p>
+          <button class="btn gold" id="btnRebuy" type="button">Nạp lại ${fmt(cfg.stack)}</button></div>`;
+        $('btnRebuy').onclick = () => { me.stack = cfg.stack; game.emit(`Bạn nạp lại ${fmt(cfg.stack)} chip`); startHand(); };
+      } else {
+        el.innerHTML = `<div class="result-row"><p>${resultText()}</p>
+          <button class="btn gold" id="btnNext" type="button">Chia ván tiếp</button></div>`;
+        $('btnNext').onclick = startHand;
+        $('btnNext').focus({ preventScroll: true });
+      }
+      return;
+    }
+    const myTurn = game.phase === 'betting' && game.toAct === 0;
+    if (!myTurn) {
+      el.innerHTML = `<div class="act-row"><button class="btn" disabled>Úp bỏ</button><button class="btn" disabled>${me.folded ? 'Bạn đã úp bỏ' : 'Chờ lượt'}</button><button class="btn" disabled>Tố</button></div>`;
+      return;
+    }
+    const L = game.legal(0);
+    const allInCall = L.toCall >= me.stack;
+    const callTxt = L.canCheck ? 'Xem' : allInCall ? `Theo tất tay ${fmt(L.callAmt)}` : `Theo ${fmt(L.callAmt)}`;
+    const verb = game.currentBet === 0 ? 'Tố' : 'Tố lên';
+    const pot = game.pot;
+    const presets = [
+      ['Tối thiểu', L.minRaiseTo],
+      ['½ hũ', game.currentBet + Math.round((pot + L.toCall) * 0.5)],
+      ['Cả hũ', game.currentBet + pot + L.toCall],
+      ['Tất tay', L.maxRaiseTo],
+    ];
+    el.innerHTML = `
+      ${L.canRaise ? `<div class="raise-row">
+        <div class="presets">${presets.map(([t, v]) => `<button class="btn" type="button" data-to="${clampRaise(v, L)}">${t}</button>`).join('')}</div>
+        <input type="range" id="raiseSlider" min="${L.minRaiseTo}" max="${L.maxRaiseTo}" step="5" value="${raiseTo}" aria-label="Mức tố">
+        <span class="amt" id="raiseAmt">${fmt(raiseTo)}</span>
+      </div>` : ''}
+      <div class="act-row">
+        <button class="btn" id="aFold" type="button">Úp bỏ</button>
+        <button class="btn gold" id="aCall" type="button">${callTxt}</button>
+        ${L.canRaise ? `<button class="btn red" id="aRaise" type="button">${raiseTo >= L.maxRaiseTo ? 'Tố tất tay' : `${verb} ${fmt(raiseTo)}`}</button>` : ''}
+      </div>`;
+    $('aFold').onclick = () => humanAct('fold');
+    $('aCall').onclick = () => humanAct(L.canCheck ? 'check' : 'call');
+    if (L.canRaise) {
+      const upd = () => {
+        $('raiseAmt').textContent = fmt(raiseTo);
+        $('aRaise').textContent = raiseTo >= L.maxRaiseTo ? 'Tố tất tay' : `${verb} ${fmt(raiseTo)}`;
+        $('raiseSlider').value = raiseTo;
+      };
+      $('raiseSlider').oninput = (e) => { raiseTo = clampRaise(+e.target.value, L); if (+e.target.value >= L.maxRaiseTo) raiseTo = L.maxRaiseTo; upd(); };
+      el.querySelectorAll('[data-to]').forEach((b) => (b.onclick = () => { raiseTo = +b.dataset.to; upd(); }));
+      $('aRaise').onclick = () => humanAct('raise');
+    }
+  }
+
+  function resultText() {
+    const n = game.results.net[0];
+    if (n === undefined) return 'Bạn ngồi ngoài ván này.';
+    if (n > 0) return `Bạn thắng +${fmt(n)}.`;
+    if (n < 0) return `Bạn mất ${fmt(-n)}.`;
+    return 'Bạn hòa vốn ván này.';
+  }
+
+  function feedbackHTML() {
+    if (!lastFeedback) return '';
+    const f = lastFeedback;
+    const cls = f.ok === true ? 'ok' : f.ok === null ? 'meh' : 'no';
+    const head = f.ok === true ? 'Quyết định tốt' : f.ok === null ? 'Tạm được' : 'Nên xem lại';
+    return `<div class="feedback ${cls}"><b>${head} · bạn chọn ${ACTION_LABEL[f.type]}</b>${f.text}
+      <div style="color:var(--muted);font-size:12px;margin-top:2px">Lúc đó: thắng ${X.pct(f.a.equity)}${f.a.toCall ? `, cần ${X.pct(f.a.potOdds)}` : ''}. Gợi ý: ${ACTION_LABEL[f.a.advice]}.</div></div>`;
+  }
+
+  function renderAnalysis() {
+    const el = $('analysis');
+    const show = $('showHints').checked;
+    if (!analysis) {
+      const idle = game.phase === 'done'
+        ? 'Ván đã xong. Xem lại nhận xét bên dưới rồi chia ván tiếp.'
+        : game.players[0].folded ? 'Bạn đã úp bỏ ván này.' : 'Phân tích sẽ hiện khi tới lượt bạn.';
+      el.innerHTML = `${feedbackHTML()}<p class="idle">${idle}</p>`;
+      return;
+    }
+    const a = analysis;
+    if (!show) {
+      el.innerHTML = `${feedbackHTML()}<p class="hidden-note">Gợi ý đang ẩn. Hãy tự ước lượng: bài mình thắng bao nhiêu phần trăm, và cần bao nhiêu để theo? Sau khi bạn quyết định, hệ thống sẽ chấm điểm.</p>`;
+      return;
+    }
+    el.innerHTML = `
+      <div class="metrics">
+        <div class="metric eq"><div class="k">Tỉ lệ thắng</div><div class="v">${X.pct(a.equity)}</div></div>
+        <div class="metric"><div class="k">Ngưỡng hòa vốn</div><div class="v">${a.toCall ? X.pct(a.potOdds) : '—'}</div></div>
+        <div class="metric"><div class="k">EV nếu theo</div><div class="v" style="color:${a.toCall ? (a.evCall >= 0 ? 'var(--good)' : 'var(--bad)') : 'inherit'}">${a.toCall ? (a.evCall >= 0 ? '+' : '') + fmt(Math.round(a.evCall)) : '—'}</div></div>
+      </div>
+      <div>
+        <div class="eqbar"><div class="fill" style="width:${(a.equity * 100).toFixed(1)}%"></div>${a.toCall ? `<div class="need" style="left:calc(${(a.potOdds * 100).toFixed(1)}% - 1px)"></div>` : ''}</div>
+        <div class="eqlegend"><span>Vs ${a.opponents} đối thủ · chia đều ${X.pct(1 / (a.opponents + 1))}</span>${a.toCall ? '<span>vạch trắng = ngưỡng cần</span>' : ''}</div>
+      </div>
+      <div class="advice"><span class="pill ${a.advice}">${ACTION_LABEL[a.advice]}</span><p>${a.why}</p></div>
+      ${feedbackHTML()}
+      <p class="foot-note">Tỉ lệ thắng tính bằng 3.000 lần giả lập, coi lá úp của đối thủ là ngẫu nhiên. Đối thủ tố mạnh thường có bài tốt hơn mức đó.</p>`;
+  }
+
+  function renderDist() {
+    const me = game.players[0];
+    const el = $('dist');
+    if (!me.cards.length || me.folded) {
+      el.innerHTML = '<p class="idle">Xác suất bộ 5 lá cuối cùng của bạn, tính trên các lá chưa lộ.</p>';
+      return;
+    }
+    const seen = game.players.filter((p) => p.id !== 0).flatMap((p) => p.revealed ? p.cards : game.ups(p));
+    const d = X.drawOut(me.cards, seen);
+    const S = game.strength;
+    const order = [...Array(9).keys()].sort((a, b) => S[b] - S[a]);
+    const cur = me.cards.length === 5 ? X.classify(me.cards).cat : -1;
+    el.innerHTML = `<div class="dist">${order.filter((c) => d[c] > 0).map((c) => `
+      <div class="dist-row${c === cur ? ' cur' : ''}"><span>${X.CAT_NAMES[c]}</span><span class="bar"><i style="width:${Math.max(1, d[c] * 100).toFixed(1)}%"></i></span><span class="p">${X.pct(d[c])}</span></div>`).join('')}</div>
+      <p class="foot-note">${me.cards.length < 5 ? `Còn ${5 - me.cards.length} lá nữa.` : 'Đủ 5 lá.'} Không tính lá úp của đối thủ (bạn không nhìn thấy).</p>`;
+  }
+
+  function renderStats() {
+    const acc = stats.decisions ? Math.round((stats.good / stats.decisions) * 100) + '%' : '—';
+    $('stats').innerHTML = [
+      ['Ván', fmt(stats.hands)],
+      ['Thắng', stats.hands ? Math.round((stats.won / stats.hands) * 100) + '%' : '—'],
+      ['Lãi/lỗ', (stats.net > 0 ? '+' : '') + fmt(stats.net)],
+      ['Chuẩn xác', acc],
+    ].map(([k, v]) => `<div class="metric"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  }
+
+  function renderRanks() {
+    const S = X.RULESETS[cfg.rules].strength;
+    const order = [...Array(9).keys()].sort((a, b) => S[b] - S[a]);
+    const total = FREQ.reduce((a, b) => a + b, 0);
+    let rows = '', prevFreq = -1;
+    order.forEach((c, k) => {
+      const flip = k > 0 && FREQ[c] < prevFreq;
+      prevFreq = FREQ[c];
+      rows += `<tr class="${flip ? 'flip' : ''}"><td>${X.CAT_NAMES[c]}</td><td class="num">${fmt(FREQ[c])}</td><td class="num">${(FREQ[c] / total * 100).toFixed(FREQ[c] / total < 0.01 ? 2 : 1)}%</td></tr>`;
+    });
+    $('ranksTable').innerHTML = `<thead><tr><th>Hạng (cao → thấp)</th><th class="num">Tổ hợp</th><th class="num">Xác suất</th></tr></thead><tbody>${rows}</tbody>`;
+  }
+
+  let logLen = -1;
+  function renderLog() {
+    if (game.events.length === logLen) return;
+    logLen = game.events.length;
+    const ev = game.events.slice(-80);
+    const el = $('log');
+    el.innerHTML = ev.map((e) => `<div class="${e.kind}">${e.text}</div>`).join('');
+    el.scrollTop = el.scrollHeight;
+  }
+
+  /* ---------------- settings ---------------- */
+  function syncForm() {
+    const f = $('settings');
+    f.players.value = String(cfg.players);
+    f.ante.value = String(cfg.ante);
+    f.stack.value = String(cfg.stack);
+    f.rules.value = cfg.rules;
+  }
+  function toggleSettings(open) {
+    $('settings').hidden = !open;
+    $('btnSettings').setAttribute('aria-expanded', String(open));
+    if (open) syncForm();
+  }
+  $('btnSettings').onclick = () => toggleSettings($('settings').hidden);
+  $('btnCloseSettings').onclick = () => toggleSettings(false);
+  $('settings').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const f = e.target;
+    cfg = { players: +f.players.value, ante: +f.ante.value, stack: +f.stack.value, rules: f.rules.value };
+    store.set('cfg', cfg);
+    toggleSettings(false);
+    newGame();
+  });
+  $('btnNewGame').onclick = newGame;
+  $('showHints').checked = store.get('hints', true);
+  $('showHints').onchange = (e) => { store.set('hints', e.target.checked); renderAnalysis(); };
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.matches('input[type=range], input[type=radio], input[type=checkbox]')) return;
+    if (game.phase === 'betting' && game.toAct === 0) {
+      const L = game.legal(0);
+      if (e.key === 'f') humanAct('fold');
+      else if (e.key === 'c') humanAct(L.canCheck ? 'check' : 'call');
+      else if (e.key === 'r' && L.canRaise) humanAct('raise');
+    }
+  });
+
+  newGame();
+})();
+</script>
