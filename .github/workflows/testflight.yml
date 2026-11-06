@@ -1,0 +1,112 @@
+name: iOS TestFlight
+
+# Ký bằng tài khoản Apple Developer (chứng chỉ do Apple quản lý trên đám mây) và đẩy lên TestFlight.
+# Chạy tay từ tab Actions. Cần 4 secret (Settings → Secrets and variables → Actions):
+#   APPLE_TEAM_ID         Team ID 10 ký tự (developer.apple.com → Membership)
+#   ASC_KEY_ID            Key ID của khóa App Store Connect API (vai trò Admin)
+#   ASC_ISSUER_ID         Issuer ID (cùng trang với Key ID)
+#   ASC_KEY_P8            Toàn bộ nội dung file AuthKey_XXXX.p8
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: macos-15-intel
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      BUILD_NUMBER: ${{ github.run_number }}.${{ github.run_attempt }}
+    steps:
+      - name: Kiểm tra secret
+        run: |
+          missing=0
+          for v in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do
+            if [ -z "${!v}" ]; then echo "::error::Chưa có secret $v"; missing=1; fi
+          done
+          exit $missing
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Đóng gói web vào app
+        run: |
+          npm ci
+          npm run build:web
+          npx cap sync ios
+
+      - name: Chuẩn bị khóa API
+        run: |
+          KEY="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s\n' "$ASC_KEY_P8" > "$KEY"
+          chmod 600 "$KEY"
+          echo "ASC_KEY_PATH=$KEY" >> "$GITHUB_ENV"
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Archive (ký tự động)
+        run: |
+          set -o pipefail
+          xcodebuild -version
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            MARKETING_VERSION=1.0 \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            archive 2>&1 | tee "$RUNNER_TEMP/archive.log" | grep -E "error:|Signing|Provisioning|\*\* ARCHIVE" || true
+          test -d "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app" || { tail -n 60 "$RUNNER_TEMP/archive.log"; exit 1; }
+
+      - name: Ký bản phát hành và đẩy lên TestFlight
+        run: |
+          set -o pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" 2>&1 | tee "$RUNNER_TEMP/export.log" | tail -n 40
+          echo "### Đã gửi bản 1.0 ($BUILD_NUMBER) lên App Store Connect" >> "$GITHUB_STEP_SUMMARY"
+          echo "Apple cần 5–30 phút xử lý, sau đó bản build hiện trong TestFlight." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Xóa khóa API
+        if: always()
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8

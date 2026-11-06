@@ -14,6 +14,14 @@ Game xì tố bộ 24 lá (9, 10, J, Q, K, A × 4 chất) để luyện kỹ nă
 
 Với Apple ID miễn phí, app hết hạn sau 7 ngày, chỉ cần cài lại (dữ liệu vẫn giữ). Có tài khoản Apple Developer (99 USD/năm) thì app dùng được 1 năm, hoặc phát qua TestFlight.
 
+**iPhone / iPad qua TestFlight (khuyên dùng khi có tài khoản Apple Developer):** workflow *iOS TestFlight* ký app bằng chứng chỉ Apple quản lý trên đám mây và đẩy thẳng lên App Store Connect. Cài một lần:
+
+1. developer.apple.com → Certificates, Identifiers & Profiles → Identifiers → **+** → App IDs → App, Bundle ID (Explicit) `com.tidusdang.xito24`.
+2. appstoreconnect.apple.com → Ứng dụng → **+** → Ứng dụng mới: iOS, tên *Xì Tố 24*, ngôn ngữ Tiếng Việt, chọn Bundle ID ở bước 1, SKU tùy ý (ví dụ `xito24`).
+3. App Store Connect → Người dùng và truy cập → Tích hợp → App Store Connect API → Khóa nhóm → **+**, vai trò **Admin**. Tải file `.p8` (chỉ tải được một lần), ghi lại Key ID và Issuer ID.
+4. GitHub → Settings → Secrets and variables → Actions → thêm 4 secret: `APPLE_TEAM_ID`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (dán toàn bộ nội dung file `.p8`).
+5. Tab Actions → *iOS TestFlight* → *Run workflow*. Sau 5–30 phút bản build hiện trong TestFlight; thêm mình vào nhóm thử nghiệm nội bộ, cài app TestFlight trên iPhone và nhận bản.
+
 **iPhone / iPad (không cần máy tính):** bật GitHub Pages (Settings → Pages → Source: *GitHub Actions*), chạy workflow *Web app (GitHub Pages)* trong tab Actions, mở trang đó bằng Safari → nút Chia sẻ → *Thêm vào MH chính*. Game chạy toàn màn hình và chơi được khi không có mạng.
 
 ## Cấu trúc
