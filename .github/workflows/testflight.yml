@@ -72,7 +72,9 @@ jobs:
           </plist>
           EOF
 
-      - name: Archive (ký tự động)
+      # Archive KHÔNG ký: máy build của GitHub bị xóa sau mỗi lần chạy nên không giữ được
+      # chứng chỉ Development. Việc ký nằm ở bước xuất, bằng chứng chỉ phát hành Apple giữ trên đám mây.
+      - name: Archive (chưa ký)
         run: |
           set -o pipefail
           xcodebuild -version
@@ -82,12 +84,8 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             MARKETING_VERSION=1.0 \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             archive 2>&1 | tee "$RUNNER_TEMP/archive.log" | grep -E "error:|Signing|Provisioning|\*\* ARCHIVE" || true
