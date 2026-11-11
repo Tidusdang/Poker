@@ -123,7 +123,8 @@
 
   /* Vẽ trạng thái nặn. o = góc trên trái lá bài trên canvas. S = điểm nắm (trên mép), P = vị trí ngón tay.
    * Trả về tỉ lệ diện tích đã lộ (0..1). */
-  function drawSqueeze(ctx, o, W, H, card, S, P) {
+  function drawSqueeze(ctx, o, W, H, card, S, P, face) {
+    face = face || drawFace;
     if (!S || !P || len(sub(P, S)) < 0.5) { drawBack(ctx, o.x, o.y, W, H); return 0; }
     const d = sub(P, S), l = len(d);
     const n = { x: d.x / l, y: d.y / l };
@@ -142,7 +143,7 @@
     ctx.save();
     rrPath(ctx, o.x, o.y, W, H, r); ctx.clip();
     halfPlanePath(ctx, M, n, -1, L); ctx.clip();
-    drawFace(ctx, o.x, o.y, W, H, card);
+    face(ctx, o.x, o.y, W, H, card);
     const sg = ctx.createLinearGradient(M.x, M.y, M.x - n.x * W * 0.2, M.y - n.y * W * 0.2);
     sg.addColorStop(0, 'rgba(40,15,8,0.38)'); sg.addColorStop(1, 'rgba(40,15,8,0)');
     ctx.fillStyle = sg; ctx.fillRect(o.x - W, o.y - H, W * 3, H * 3);
