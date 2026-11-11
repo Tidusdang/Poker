@@ -50,3 +50,20 @@ for (const n of [2, 3, 4]) {
   console.log(`${n} người: OK, ${sidePots} ván có hũ phụ, ${folds} ván thắng do bỏ bài`);
 }
 console.log('Tất cả test đều qua');
+
+// xào bài như ngoài đời: mọi kiểu xào đều cho ra đủ 24 lá, không mất/trùng lá; bài mang sang ván sau
+{
+  const rng = () => Math.random();
+  for (const key of Object.keys(X.SHUFFLES)) {
+    let d = X.newDeck();
+    for (let i = 0; i < 50; i++) { d = X.shuffleBy(d, key, rng); assert.deepStrictEqual([...d].sort((a, b) => a - b), X.newDeck(), key); }
+  }
+  const g = new X.Game({ players: [{ name: 'A', stack: 500 }, { name: 'B', stack: 500 }, { name: 'C', stack: 500 }], ante: 10, shuffleMode: 'cutonly' });
+  for (let h = 0; h < 30; h++) {
+    for (const p of g.players) if (p.stack <= 0) p.stack = 500;
+    g.startHand();
+    while (g.phase !== 'done') { if (g.phase === 'between') g.proceed(); else { const a = X.botDecide(g, g.toAct); g.act(g.toAct, a.type, a.raiseTo); } }
+    assert.deepStrictEqual([...g.prevOrder].sort((a, b) => a - b), X.newDeck(), 'gom bài đủ 24 lá');
+  }
+  console.log('Xào bài và gom bài: OK');
+}

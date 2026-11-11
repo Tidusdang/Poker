@@ -83,7 +83,7 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !wind
 `;
 fs.writeFileSync(path.join(out, 'index.html'), head + page + '\n</body>\n</html>\n');
 
-for (const f of ['xito-engine.js', 'xito-fx.js']) fs.copyFileSync(path.join(root, f), path.join(out, f));
+for (const f of ['xito-engine.js', 'xito-fx.js', 'xito-sim.js', 'xito-sim-worker.js', 'xito-lab-data.js']) fs.copyFileSync(path.join(root, f), path.join(out, f));
 
 /* ---------- icon + manifest + service worker ---------- */
 fs.cpSync(path.join(root, 'assets', 'icons'), path.join(out, 'icons'), { recursive: true });

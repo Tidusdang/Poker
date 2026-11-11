@@ -43,6 +43,62 @@
     return a;
   }
 
+  /* ----------------------------- Xào bài như ngoài đời -----------------------------
+   * Mảng bộ bài: phần tử 0 là lá trên cùng (lá được chia trước).
+   * SHUFFLES: các kiểu xào; mỗi kiểu là dãy thao tác riffle / overhand / cut.
+   */
+  const SHUFFLES = {
+    perfect: { label: 'Trộn kỹ (ngẫu nhiên hoàn toàn)', short: 'trộn kỹ', perfect: true },
+    real3: { label: 'Xào 3 lần + kinh', short: 'xào 3 lần, kinh', riffles: 3, cut: true },
+    lazy1: { label: 'Xào 1 lần + kinh', short: 'xào 1 lần, kinh', riffles: 1, cut: true },
+    overhand: { label: 'Xốc tay 4 lần + kinh', short: 'xốc tay 4 lần, kinh', overhands: 4, cut: true },
+    cutonly: { label: 'Không xào, chỉ kinh', short: 'chỉ kinh', cut: true },
+  };
+
+  function binomialHalf(n, rng) { let k = 0; for (let i = 0; i < n; i++) if (rng() < 0.5) k++; return k; }
+
+  // Xào riffle (mô hình Gilbert–Shannon–Reeds): chia đôi theo phân phối nhị thức rồi đan xen,
+  // lá rơi từ mỗi nửa với xác suất tỉ lệ số lá còn lại của nửa đó.
+  function riffle(deck, rng = Math.random) {
+    const k = binomialHalf(deck.length, rng);
+    let a = 0, b = k;
+    const out = [];
+    while (a < k || b < deck.length) {
+      const la = k - a, lb = deck.length - b;
+      if (rng() * (la + lb) < la) out.push(deck[a++]); else out.push(deck[b++]);
+    }
+    return out;
+  }
+  // Xốc tay: rút từng nắm 1–5 lá từ trên xuống, xếp chồng sang tay kia (thứ tự các nắm bị đảo).
+  function overhand(deck, rng = Math.random) {
+    const packets = [];
+    let i = 0;
+    while (i < deck.length) { const sz = 1 + ((rng() * 5) | 0); packets.push(deck.slice(i, i + sz)); i += sz; }
+    return packets.reverse().flat();
+  }
+  // Kinh (cắt bài): nhấc một phần phía trên đặt xuống dưới.
+  function cut(deck, rng = Math.random) {
+    const n = deck.length;
+    const c = 4 + ((rng() * (n - 7)) | 0);
+    return deck.slice(c).concat(deck.slice(0, c));
+  }
+  function shuffleBy(prevOrder, key, rng = Math.random) {
+    const spec = SHUFFLES[key] || SHUFFLES.perfect;
+    if (spec.perfect || !prevOrder || prevOrder.length !== 24) return shuffle(newDeck(), rng);
+    let d = prevOrder.slice();
+    for (let i = 0; i < (spec.riffles || 0); i++) d = riffle(d, rng);
+    for (let i = 0; i < (spec.overhands || 0); i++) d = overhand(d, rng);
+    if (spec.cut) d = cut(d, rng);
+    return d;
+  }
+  /* Gom bài sau ván: các nhà úp bỏ trước (theo thứ tự úp) nằm dưới cùng, rồi bài các nhà còn lại
+   * theo thứ tự ghế; mỗi nhà giữ nguyên thứ tự lá như lúc chia. Chồng bài gom đặt lên trên phần bài thừa. */
+  function collect(blocksBottomFirst, stub) {
+    const pile = [];
+    for (let i = blocksBottomFirst.length - 1; i >= 0; i--) pile.push(...blocksBottomFirst[i]);
+    return pile.concat(stub);
+  }
+
   /* Phân loại 1..5 lá. Với < 5 lá chỉ tính đôi/thú/sám/tứ quý (bài ngửa). */
   function classify(cards) {
     const n = cards.length;
@@ -171,10 +227,61 @@
     return wins / iters;
   }
 
+  /* Giống equity() nhưng trả thêm chi tiết để giải thích: mỗi đối thủ hơn mình bao nhiêu lần
+   * và thường hơn bằng loại bài gì; mình thắng bằng loại bài gì. */
+  function equityDetail(myCards, oppUps, dead, strength, iters = 3000, rng = Math.random) {
+    const known = new Set([...myCards, ...dead]);
+    oppUps.forEach((u) => u.forEach((c) => known.add(c)));
+    const pool = newDeck().filter((c) => !known.has(c));
+    const needMe = 5 - myCards.length;
+    const needs = oppUps.map((u) => 5 - u.length);
+    const totalNeed = needMe + needs.reduce((a, b) => a + b, 0);
+    const perOpp = oppUps.map(() => ({ beat: 0, cats: Array(9).fill(0) }));
+    const myWinCats = Array(9).fill(0);
+    let wins = 0;
+    const p = pool.slice();
+    for (let it = 0; it < iters; it++) {
+      for (let i = 0; i < totalNeed; i++) {
+        const j = i + ((rng() * (p.length - i)) | 0);
+        const t = p[i]; p[i] = p[j]; p[j] = t;
+      }
+      let k = 0;
+      const mine = myCards.slice();
+      for (let i = 0; i < needMe; i++) mine.push(p[k++]);
+      const my = scoreOf(mine, strength);
+      let win = true;
+      for (let o = 0; o < oppUps.length; o++) {
+        const h = oppUps[o].slice();
+        for (let i = 0; i < needs[o]; i++) h.push(p[k++]);
+        if (scoreOf(h, strength) > my) { win = false; perOpp[o].beat++; perOpp[o].cats[classify(h).cat]++; }
+      }
+      if (win) { wins++; myWinCats[classify(mine).cat]++; }
+    }
+    return { win: wins / iters, wins, iters, poolSize: pool.length, unknownCards: totalNeed,
+      perOpp: perOpp.map((o) => ({ beat: o.beat / iters, topCat: o.cats.indexOf(Math.max(...o.cats)), cats: o.cats })),
+      myWinCats };
+  }
+
+  /* Nhóm bộ khởi đầu 2 lá: 6 đôi + 15 cặp khác số × (đồng chất / khác chất) = 36 nhóm. */
+  function startClass(a, b) {
+    let ra = rankOf(a), rb = rankOf(b);
+    if (ra < rb) { const t = ra; ra = rb; rb = t; }
+    if (ra === rb) return ra;
+    const idx = 6 + ((ra * (ra - 1)) / 2 + rb) * 2 + (suitOf(a) === suitOf(b) ? 0 : 1);
+    return idx;
+  }
+  function startClassLabel(i) {
+    if (i < 6) return 'Đôi ' + RANKS[i];
+    const j = (i - 6) >> 1, suited = ((i - 6) & 1) === 0;
+    let ra = 1; while ((ra * (ra + 1)) / 2 <= j) ra++;
+    const rb = j - (ra * (ra - 1)) / 2;
+    return RANKS[ra] + '-' + RANKS[rb] + (suited ? ' đồng chất' : ' khác chất');
+  }
+
   /* ----------------------------- Ván chơi ----------------------------- */
 
   class Game {
-    constructor({ players, ante = 10, rules = 'standard', rng = Math.random }) {
+    constructor({ players, ante = 10, rules = 'standard', rng = Math.random, shuffleMode = 'perfect' }) {
       this.players = players.map((p, i) => ({
         id: i, name: p.name, human: !!p.human, style: p.style || null,
         stack: p.stack, cards: [], folded: true, out: false, allIn: false,
@@ -182,6 +289,10 @@
       }));
       this.ante = ante;
       this.rules = rules;
+      this.shuffleMode = shuffleMode;
+      this.prevOrder = null;      // thứ tự bộ bài gom lại sau ván trước (lá trên cùng trước)
+      this.prevGather = null;     // các khối bài theo nhà của ván trước, để huấn luyện viên nhắc
+      this.foldOrder = [];
       this.rng = rng;
       this.handNo = 0;
       this.phase = 'idle';
@@ -200,7 +311,10 @@
 
     startHand() {
       this.handNo++;
-      this.deck = shuffle(newDeck(), this.rng);
+      const realistic = this.shuffleMode !== 'perfect' && this.prevOrder;
+      this.deck = shuffleBy(this.prevOrder, this.shuffleMode, this.rng);
+      this.dealtFrom = this.deck.slice();
+      this.foldOrder = [];
       this.results = null;
       for (const p of this.players) {
         Object.assign(p, { cards: [], allIn: false, bet: 0, committed: 0, acted: false, lastAction: '', revealed: false });
@@ -209,14 +323,14 @@
       }
       const seated = this.players.filter((p) => !p.out);
       if (seated.length < 2) throw new Error('Cần ít nhất 2 người còn chip');
-      this.emit(`Ván ${this.handNo}: mỗi người cược sàn ${this.ante}`, 'head');
+      this.emit(`Ván ${this.handNo}: mỗi người cược sàn ${this.ante}` + (realistic ? ` · bộ bài ván trước được ${SHUFFLES[this.shuffleMode].short}` : ''), 'head');
       for (const p of seated) {
         const a = Math.min(this.ante, p.stack);
         p.stack -= a; p.committed += a;
         if (p.stack === 0) p.allIn = true;
       }
-      for (const p of seated) p.cards.push(this.deck.pop());
-      for (const p of seated) p.cards.push(this.deck.pop());
+      for (const p of seated) p.cards.push(this.deck.shift());
+      for (const p of seated) p.cards.push(this.deck.shift());
       this.street = 2;
       this.beginRound();
     }
@@ -283,7 +397,7 @@
       if (type === 'check' && !L.canCheck) type = 'call';
       if (type === 'raise' && !L.canRaise) type = L.canCheck ? 'check' : 'call';
       if (type === 'fold') {
-        p.folded = true; p.lastAction = 'Úp bỏ';
+        p.folded = true; p.lastAction = 'Úp bỏ'; this.foldOrder.push(p.id);
         this.emit(`${p.name} úp bỏ`);
       } else if (type === 'check') {
         p.lastAction = 'Xem';
@@ -315,7 +429,7 @@
     proceed() {
       if (this.phase !== 'between') return;
       if (this.street >= 5) return this.showdown();
-      for (const p of this.live()) p.cards.push(this.deck.pop());
+      for (const p of this.live()) p.cards.push(this.deck.shift());
       this.street++;
       this.beginRound();
     }
@@ -326,6 +440,7 @@
       w.stack += amount;
       this.phase = 'done'; this.toAct = -1;
       this.results = { byFold: true, pots: [{ amount, winners: [w.id] }], net: this.netOf({ [w.id]: amount }) };
+      this.gather();
       this.emit(`${w.name} ăn ${amount} — không ai theo`, 'win');
     }
 
@@ -352,11 +467,20 @@
       for (const id in won) this.players[id].stack += won[id];
       this.phase = 'done'; this.toAct = -1;
       this.results = { byFold: false, pots, net: this.netOf(won), hands: Object.fromEntries(live.map((p) => [p.id, describe(p.cards)])) };
+      this.gather();
       this.emit('Lật bài: ' + live.map((p) => `${p.name} ${describe(p.cards)}`).join(' · '), 'street');
       pots.forEach((pt, k) => {
         const w = this.players[pt.winners[0]];
         this.emit(`${w.name} ăn ${pots.length > 1 ? (k === 0 ? 'hũ chính' : 'hũ phụ') + ' ' : ''}${pt.amount} với ${describe(w.cards)}`, 'win');
       });
+    }
+
+    gather() {
+      const folded = this.foldOrder.map((id) => this.players[id]);
+      const rest = this.players.filter((p) => !p.out && !p.folded);
+      const blocks = [...folded, ...rest].map((p) => ({ id: p.id, name: p.name, cards: p.cards.slice() }));
+      this.prevGather = blocks;
+      this.prevOrder = collect(blocks.map((b) => b.cards), this.deck.slice());
     }
 
     netOf(won) {
@@ -379,7 +503,8 @@
   function analyze(game, i, iters = 2500) {
     const v = game.viewOf(i);
     const L = game.legal(i);
-    const e = equity(v.mine, v.oppUps, v.dead, game.strength, iters);
+    const det = equityDetail(v.mine, v.oppUps, v.dead, game.strength, iters);
+    const e = det.win;
     const n = v.oppUps.length;
     const pot = game.pot;
     const potOdds = L.toCall > 0 ? L.callAmt / (pot + L.callAmt) : 0;
@@ -396,7 +521,10 @@
       advice = 'fold';
       why = `Thắng ${pct(e)} < ngưỡng hòa vốn ${pct(potOdds)} → theo là lỗ về lâu dài.`;
     }
-    return { equity: e, potOdds, rel, evCall, opponents: n, toCall: L.toCall, callAmt: L.callAmt, pot, advice, why,
+    const opps = game.live().filter((p) => p.id !== i);
+    return { equity: e, potOdds, rel, evCall, opponents: n, toCall: L.toCall, callAmt: L.callAmt, pot, advice, why, detail: det,
+      oppInfo: opps.map((p, k) => ({ id: p.id, name: p.name, ups: game.ups(p), beat: det.perOpp[k].beat, topCat: det.perOpp[k].topCat })),
+      street: game.street, myCards: v.mine.slice(),
       drawOut: drawOut(v.mine, [...v.oppUps.flat(), ...v.dead]) };
   }
 
@@ -461,7 +589,8 @@
   function pct(x) { return (x * 100).toFixed(x < 0.1 && x > 0 ? 1 : 0) + '%'; }
 
   const api = { RANKS, SUITS, CAT_NAMES, RULESETS, STYLES, rankOf, suitOf, cardLabel, isRed, newDeck, shuffle,
-    classify, scoreOf, describe, handFrequencies, drawOut, equity, Game, analyze, grade, botDecide, pct };
+    classify, scoreOf, describe, handFrequencies, drawOut, equity, equityDetail, Game, analyze, grade, botDecide, pct,
+    SHUFFLES, riffle, overhand, cut, shuffleBy, collect, startClass, startClassLabel };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Xito = api;
 })(typeof window !== 'undefined' ? window : globalThis);

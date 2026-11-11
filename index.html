@@ -314,7 +314,7 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
 @media (max-width: 960px) {
   body { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
   .tabbar {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
     padding: 8px max(16px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
     background: var(--lacquer-2); border-top: 1px solid var(--line);
@@ -324,6 +324,8 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
   .tabbar .dot { position: absolute; top: 9px; margin-left: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--cinnabar); }
   .main[data-tab="table"] .coach { display: none; }
   .main[data-tab="coach"] .table { display: none; }
+  .main[data-tab="table"] .lab, .main[data-tab="coach"] .lab { display: none; }
+  .main[data-tab="lab"] .table, .main[data-tab="lab"] .coach { display: none; }
   .dock {
     position: sticky; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); z-index: 6;
     margin: 0 -10px -16px; padding: 10px 10px 14px; border-radius: 0 0 18px 18px;
@@ -360,6 +362,56 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
   .act-row .btn { padding: 13px 8px; flex-basis: 90px; }
   .raise-row .amt { min-width: 52px; }
 }
+
+/* ---------- Giải thích gợi ý, ghi nhớ ván trước, phòng thí nghiệm ---------- */
+details.why { border-top: 1px solid var(--line); padding-top: 8px; }
+details.why summary { cursor: pointer; color: var(--gold); font-weight: 600; font-size: 13px; list-style: none; }
+details.why summary::-webkit-details-marker { display: none; }
+details.why summary::before { content: "▸ "; }
+details.why[open] summary::before { content: "▾ "; }
+.why ol { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--eggshell-2); }
+.why ol li::marker { color: var(--gold); font-family: var(--mono); }
+.why b { color: var(--eggshell); }
+.why .n { font-family: var(--mono); color: var(--gold); font-variant-numeric: tabular-nums; }
+.why .calc { display: block; font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 2px; }
+.why .opp { display: block; margin-top: 2px; }
+.exp { font-size: 13px; color: var(--eggshell-2); border-left: 2px solid var(--gold-dim); padding-left: 8px; }
+.exp b { color: var(--gold); font-family: var(--mono); }
+.mem { display: flex; flex-direction: column; gap: 10px; }
+.mem-row { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--eggshell-2); }
+.mem-row .cards-inline { font-family: var(--mono); color: var(--eggshell); }
+.mem-row .cards-inline .r { color: #f3a493; }
+.mem-bars { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; }
+.mem-bars .lbl { color: var(--muted); font-size: 12px; }
+.mem-bars .val { font-family: var(--mono); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+.mem-bars .val b { color: var(--gold); }
+.mem-bars .val small { color: var(--muted); }
+.lab { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.lab-head h2 { margin: 0; font-family: var(--display); font-size: 28px; color: var(--eggshell); text-wrap: balance; }
+.lab-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; max-width: 75ch; }
+.lab-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 12px; align-items: start; }
+.lab table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.lab th { text-align: left; font-weight: 500; font-size: 11px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.lab td { padding: 4px 6px; border-bottom: 1px solid #2f1a14; font-variant-numeric: tabular-nums; vertical-align: middle; }
+.lab td.num, .lab th.num { text-align: right; font-family: var(--mono); }
+.lab tr.hi td { color: var(--gold); }
+.wbar { position: relative; height: 8px; min-width: 60px; background: #2e1913; border-radius: 4px; overflow: hidden; }
+.wbar i { position: absolute; inset: 0 auto 0 0; background: var(--gold-dim); border-radius: 4px; }
+.wbar.good i { background: var(--gold); }
+.wbar s { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--eggshell); text-decoration: none; }
+.lab .seg span { padding: 4px 10px; font-size: 12px; }
+.lab-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.lab-note { font-size: 12.5px; color: var(--eggshell-2); margin: 0; line-height: 1.55; }
+.lab-note b { color: var(--gold); }
+.lab ol.basis { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--eggshell-2); }
+.lab ol.basis b { color: var(--eggshell); }
+.lab ol.basis code { font-family: var(--mono); font-size: 12px; color: var(--gold); }
+.runner { display: flex; flex-direction: column; gap: 10px; }
+.runner select { background: var(--lacquer-2); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+.runner .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.progress { height: 6px; background: #2e1913; border-radius: 3px; overflow: hidden; }
+.progress i { display: block; height: 100%; width: 0; background: var(--gold); transition: width .2s; }
+.scroll-y { max-height: 420px; overflow-y: auto; }
 
 @media (prefers-reduced-motion: reduce) {
   .card .flip, .eqbar .fill { transition: none; }
@@ -413,6 +465,15 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
       <label class="rule-opt"><input type="radio" name="rules" id="ruOdds" value="byOdds"><span>Theo xác suất<small>Thùng &gt; Tứ quý</small></span></label>
     </fieldset>
 
+    <fieldset>
+      <legend>Xào bài giữa các ván</legend>
+      <label class="rule-opt"><input type="radio" name="shuffle" id="shPerfect" value="perfect"><span>Trộn kỹ<small>Ngẫu nhiên hoàn toàn, như máy</small></span></label>
+      <label class="rule-opt"><input type="radio" name="shuffle" id="shReal3" value="real3" checked><span>Xào 3 lần + kinh<small>Như bàn thật, áp dụng từ ván sau</small></span></label>
+      <label class="rule-opt"><input type="radio" name="shuffle" id="shLazy1" value="lazy1"><span>Xào 1 lần + kinh<small>Người chia lười</small></span></label>
+      <label class="rule-opt"><input type="radio" name="shuffle" id="shOver" value="overhand"><span>Xốc tay 4 lần + kinh</span></label>
+      <label class="rule-opt"><input type="radio" name="shuffle" id="shCut" value="cutonly"><span>Không xào, chỉ kinh</span></label>
+    </fieldset>
+
     <div class="group-h"><h3>Hiệu ứng</h3><span>Áp dụng ngay · máy bật “giảm chuyển động” thì bỏ bay/lật</span></div>
     <fieldset>
       <legend>Nặn bài</legend>
@@ -464,6 +525,10 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
         <div id="analysis"></div>
       </div>
       <div class="card-panel">
+        <div class="panel-h"><h2>Ghi nhớ ván trước</h2></div>
+        <div id="memory"></div>
+      </div>
+      <div class="card-panel">
         <div class="panel-h"><h2>Khả năng về bài</h2></div>
         <div id="dist"></div>
       </div>
@@ -481,12 +546,62 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
         <div class="log" id="log"></div>
       </div>
     </aside>
+
+    <section class="lab" id="lab" aria-label="Kinh nghiệm">
+      <div class="lab-head">
+        <h2>Kinh nghiệm từ 1 triệu ván</h2>
+        <p id="labIntro"></p>
+      </div>
+      <div class="lab-grid">
+        <div class="card-panel">
+          <div class="panel-h"><h2>Gợi ý dựa vào đâu</h2></div>
+          <ol class="basis">
+            <li><b>Tỉ lệ thắng (equity).</b> Máy giữ nguyên mọi lá bạn đã thấy (bài bạn, lá ngửa của mọi nhà, lá của nhà đã úp), rồi chia ngẫu nhiên các lá còn thiếu (lá úp đối thủ, các lá sắp ra) <code>3.000</code> lần đến đủ 5 lá. Bạn thắng bao nhiêu lần thì tỉ lệ thắng là bấy nhiêu.</li>
+            <li><b>Ngưỡng hòa vốn.</b> <code>tiền phải theo ÷ (hũ + tiền phải theo)</code>. Theo 20 vào hũ 60 thì cần thắng ít nhất 20 ÷ 80 = 25% mới không lỗ về lâu dài.</li>
+            <li><b>Lời lỗ kỳ vọng (EV).</b> <code>tỉ lệ thắng × (hũ + tiền theo) − tiền theo</code>. Dương là theo có lãi.</li>
+            <li><b>Sức mạnh so với bàn.</b> <code>tỉ lệ thắng × số người</code>. Bằng 1 là ngang mức chia đều. Gợi ý tố khi ≥ 1,35 (chưa ai tố) hoặc ≥ 1,6 (đang bị tố).</li>
+            <li><b>Kinh nghiệm.</b> Bảng “Bộ khởi đầu 2 lá” và “Bài đang có ở lá 3, lá 4”: trung bình 1 triệu ván, ai cũng theo tới cuối. Dùng để nhớ nhanh bộ nào mạnh, không thay cho tỉ lệ thắng của đúng ván đang chơi.</li>
+            <li><b>Chưa tính:</b> kiểu chơi của đối thủ (ai tố mạnh thường có bài), tiền cược ở các vòng sau, và khi xào thật thì lá úp không hoàn toàn ngẫu nhiên (xem “Ghi nhớ ván trước”).</li>
+          </ol>
+        </div>
+        <div class="card-panel">
+          <div class="lab-row"><div class="panel-h"><h2>Bộ khởi đầu 2 lá</h2></div><div class="seg" id="labSegStart"></div></div>
+          <p class="lab-note" id="labStartNote"></p>
+          <div class="scroll-y"><table id="labStart"></table></div>
+        </div>
+        <div class="card-panel">
+          <div class="panel-h"><h2>Bài đang có ở lá 3, lá 4</h2></div>
+          <p class="lab-note">Đang có loại bài này khi đủ 3 hoặc 4 lá thì cuối ván thắng bao nhiêu (cùng số người như bảng bên).</p>
+          <table id="labStreet"></table>
+        </div>
+        <div class="card-panel">
+          <div class="panel-h"><h2>Xào bài ảnh hưởng ra sao</h2></div>
+          <p class="lab-note" id="labCarryNote"></p>
+          <div class="scroll"><table id="labCarry"></table></div>
+        </div>
+        <div class="card-panel">
+          <div class="panel-h"><h2>Tự chạy thử</h2></div>
+          <div class="runner">
+            <p class="lab-note">Máy chơi liên tục, bộ bài gom lại theo từng nhà rồi xào theo kiểu bạn chọn, ai cũng theo tới lá 5. Chạy trong luồng nền nên vẫn bấm được game.</p>
+            <div class="controls">
+              <select id="runPlayers" aria-label="Số người"><option value="2">2 người</option><option value="3">3 người</option><option value="4" selected>4 người</option></select>
+              <select id="runShuffle" aria-label="Kiểu xào"></select>
+              <select id="runHands" aria-label="Số ván"><option value="10000">10.000 ván</option><option value="100000" selected>100.000 ván</option><option value="1000000">1.000.000 ván</option></select>
+              <button class="btn gold" type="button" id="runBtn">Chạy</button>
+            </div>
+            <div class="progress" aria-hidden="true"><i id="runProg"></i></div>
+            <div id="runOut" class="lab-note"></div>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </div>
 
 <nav class="tabbar" id="tabbar" aria-label="Màn hình">
   <button type="button" data-tab="table" aria-pressed="true">Bàn chơi</button>
   <button type="button" data-tab="coach" aria-pressed="false">Huấn luyện<span class="dot" id="coachDot" hidden></span></button>
+  <button type="button" data-tab="lab" aria-pressed="false">Kinh nghiệm</button>
 </nav>
 
 <div class="fx" id="fx" aria-hidden="true"></div>
@@ -506,6 +621,8 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
 
 <script src="xito-engine.js"></script>
 <script src="xito-fx.js"></script>
+<script src="xito-sim.js"></script>
+<script src="xito-lab-data.js"></script>
 <script>
 (function () {
   'use strict';
@@ -543,7 +660,9 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
   document.addEventListener('visibilitychange', keepAwake);
   document.addEventListener('pointerdown', keepAwake, { once: true });
 
-  let cfg = Object.assign({ players: 4, ante: 10, stack: 1000, rules: 'standard' }, store.get('cfg', {}));
+  let cfg = Object.assign({ players: 4, ante: 10, stack: 1000, rules: 'standard', shuffle: 'real3' }, store.get('cfg', {}));
+  const LAB = window.XitoLabData || null;
+  let whyOpen = store.get('whyOpen', false);
   let fx = Object.assign({ squeeze: 'last', speed: 'normal', sound: false }, store.get('fx', {}));
   let stats = Object.assign({ hands: 0, won: 0, net: 0, decisions: 0, good: 0 }, store.get('stats', {}));
   let game, ui, analysis = null, lastFeedback = null, gameId = 0, raiseTo = 0;
@@ -752,12 +871,13 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
     $('banner').hidden = true;
     const players = [{ name: 'Bạn', human: true, stack: cfg.stack }]
       .concat(BOTS.slice(0, cfg.players - 1).map((b) => ({ ...b, stack: cfg.stack })));
-    game = new X.Game({ players, ante: cfg.ante, rules: cfg.rules });
+    game = new X.Game({ players, ante: cfg.ante, rules: cfg.rules, shuffleMode: cfg.shuffle });
     ui = freshUi();
     lastFeedback = null; analysis = null;
     $('ruleLine').textContent = X.RULESETS[cfg.rules].label;
     buildSeats();
     renderRanks();
+    renderLab();
     startHand();
   }
 
@@ -769,7 +889,9 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
     if (game.players[0].stack <= 0) { render(); return; }
     lastFeedback = null; analysis = null;
     $('banner').hidden = true;
+    const forecast = makeForecast();
     ui = freshUi();
+    ui.forecast = forecast;
     game.startHand();
     render();
     // cược sàn bay vào hũ
@@ -930,6 +1052,7 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
     renderActions();
     renderCoachStrip();
     renderAnalysis();
+    renderMemory();
     renderDist();
     renderStats();
     renderLog();
@@ -1122,9 +1245,185 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
         <div class="eqlegend"><span>Vs ${a.opponents} đối thủ · chia đều ${X.pct(1 / (a.opponents + 1))}</span>${a.toCall ? '<span>vạch trắng = ngưỡng cần</span>' : ''}</div>
       </div>
       <div class="advice"><span class="pill ${a.advice}">${ACTION_LABEL[a.advice]}</span><p>${a.why}</p></div>
-      ${feedbackHTML()}
-      <p class="foot-note">Tỉ lệ thắng tính bằng 3.000 lần giả lập, coi lá úp của đối thủ là ngẫu nhiên. Đối thủ tố mạnh thường có bài tốt hơn mức đó.</p>`;
+      ${expHTML(a)}
+      ${whyHTML(a)}
+      ${feedbackHTML()}`;
+    const d = el.querySelector('details.why');
+    if (d) d.addEventListener('toggle', () => { whyOpen = d.open; store.set('whyOpen', whyOpen); });
   }
+
+  /* ---------- Kinh nghiệm 1 triệu ván cho bài đang cầm ---------- */
+  function labRun(n) { return LAB && LAB.runs[Math.max(2, Math.min(4, n))] && LAB.runs[Math.max(2, Math.min(4, n))].perfect; }
+  function expHTML(a) {
+    const n = a.opponents + 1;
+    const D = labRun(n);
+    if (!D) return '';
+    const mc = a.myCards;
+    if (a.street === 2) {
+      const cls = X.startClass(mc[0], mc[1]);
+      const [cnt, win] = D.start[game.rules][cls];
+      const rank = D.start[game.rules].map(([, w], i) => ({ w, i })).sort((x, y) => y.w - x.w).findIndex((x) => x.i === cls) + 1;
+      return `<div class="exp">Kinh nghiệm: bộ <b>${X.startClassLabel(cls)}</b> đứng thứ ${rank}/36, bàn ${n} người ai cũng theo tới cuối thì thắng <b>${X.pct(win)}</b> (${fmt(cnt)} lần trong ${fmt(LAB.handsPerRun)} ván).</div>`;
+    }
+    if (a.street === 3 || a.street === 4) {
+      const cat = X.classify(mc.slice(0, a.street)).cat;
+      const [cnt, win] = D.street[game.rules][a.street - 3][cat];
+      if (!cnt) return '';
+      return `<div class="exp">Kinh nghiệm: có <b>${X.CAT_NAMES[cat]}</b> ở lá ${a.street}, bàn ${n} người thì cuối ván thắng trung bình <b>${X.pct(win)}</b>. Ván này tính riêng là ${X.pct(a.equity)} vì đã thấy lá ngửa của đối thủ.</div>`;
+    }
+    return '';
+  }
+
+  /* ---------- Vì sao gợi ý này ---------- */
+  function cardTxt(c) { const t = X.cardLabel(c); return X.isRed(c) ? `<span style="color:#f3a493">${t}</span>` : t; }
+  function whyHTML(a) {
+    const d = a.detail;
+    if (!d) return '';
+    const n = a.opponents;
+    const cats = d.myWinCats.map((c, i) => ({ c, i })).filter((x) => x.c > 0).sort((x, y) => y.c - x.c).slice(0, 2)
+      .map((x) => `${X.CAT_NAMES[x.i]} (${X.pct(x.c / Math.max(1, d.wins))})`).join(', ');
+    const opps = a.oppInfo.map((o) => `<span class="opp">• <b>${o.name}</b> (ngửa ${o.ups.map(cardTxt).join(' ')}): hơn bạn <span class="n">${X.pct(o.beat)}</span> số lần${o.beat > 0 ? `, hay nhất là bằng ${X.CAT_NAMES[o.topCat]}` : ''}</span>`).join('');
+    const call = a.callAmt, pot = a.pot;
+    const shuffleNote = game.shuffleMode !== 'perfect'
+      ? ' Bàn đang “' + X.SHUFFLES[game.shuffleMode].short + '” nên lá úp không hoàn toàn ngẫu nhiên: xem ô Ghi nhớ ván trước.'
+      : '';
+    return `<details class="why"${whyOpen ? ' open' : ''}><summary>Vì sao gợi ý này?</summary><ol>
+      <li><b>Tỉ lệ thắng <span class="n">${X.pct(a.equity)}</span>.</b> Máy giữ nguyên mọi lá bạn đã thấy, chia ngẫu nhiên ${d.unknownCards} lá còn thiếu từ ${d.poolSize} lá bạn chưa thấy, làm ${fmt(d.iters)} lần: bạn thắng ${fmt(d.wins)} lần${cats ? `, chủ yếu nhờ ${cats}` : ''}.${opps}</li>
+      ${call > 0 ? `<li><b>Ngưỡng hòa vốn <span class="n">${X.pct(a.potOdds)}</span>.</b> Phải thắng ít nhất ngần này mới không lỗ khi theo.<span class="calc">${fmt(call)} ÷ (${fmt(pot)} + ${fmt(call)}) = ${X.pct(a.potOdds)}</span></li>
+      <li><b>Lời lỗ kỳ vọng nếu theo <span class="n">${a.evCall >= 0 ? '+' : ''}${fmt(Math.round(a.evCall))}</span>.</b> ${a.evCall >= 0 ? 'Dương: chơi nhiều lần như vậy thì có lãi.' : 'Âm: chơi nhiều lần như vậy thì lỗ.'}<span class="calc">${X.pct(a.equity)} × ${fmt(pot + call)} − ${fmt(call)} = ${fmt(Math.round(a.evCall))}</span></li>`
+        : `<li><b>Chưa ai tố.</b> Xem là miễn phí, nên chỉ cần quyết có tố lấy giá trị hay không.</li>`}
+      <li><b>Sức mạnh so với bàn <span class="n">${a.rel.toFixed(2).replace('.', ',')}</span>.</b> Bằng 1 là ngang mức chia đều cho ${n + 1} người. Ngưỡng tố: ${call > 0 ? '≥ 1,6 khi đang bị tố' : '≥ 1,35 khi chưa ai tố'}.<span class="calc">${X.pct(a.equity)} × ${n + 1} người = ${a.rel.toFixed(2).replace('.', ',')}</span></li>
+      <li><b>Kết luận: ${ACTION_LABEL[a.advice]}.</b> ${a.why}</li>
+      <li><b>Chưa tính:</b> kiểu chơi đối thủ (ai tố mạnh thường có bài hơn mức ngẫu nhiên), tiền cược các vòng sau.${shuffleNote}</li>
+    </ol></details>`;
+  }
+
+  /* ---------- Ghi nhớ ván trước ---------- */
+  function makeForecast() {
+    if (!game || game.shuffleMode === 'perfect' || !game.prevOrder || !game.prevGather || !window.XitoSim) return null;
+    const visible = new Set();
+    for (const p of game.players) {
+      if (!p.cards.length) continue;
+      p.cards.forEach((c, k) => { if (k > 0 || p.human || p.revealed) visible.add(c); });
+    }
+    const n = game.players.filter((p) => p.stack > 0 || !p.human).length;
+    try {
+      return { mode: game.shuffleMode, n, groups: XitoSim.forecast(game.prevOrder, game.prevGather, game.shuffleMode, n, visible, 3000) };
+    } catch (e) { return null; }
+  }
+  let memSig = '';
+  function renderMemory() {
+    const el = $('memory');
+    const mode = game ? game.shuffleMode : cfg.shuffle;
+    const f = ui && ui.forecast;
+    const sig = mode + ':' + (game ? game.handNo : 0) + ':' + (f ? f.groups.length : -1);
+    if (sig === memSig) return;
+    memSig = sig;
+    if (mode === 'perfect') {
+      el.innerHTML = '<p class="idle">Bàn đang trộn kỹ: mỗi ván bộ bài ngẫu nhiên hoàn toàn, ván trước không ảnh hưởng ván sau. Chọn “Xào 3 lần + kinh” trong Cài đặt để luyện đọc bài như bàn thật.</p>';
+      return;
+    }
+    if (!f) {
+      el.innerHTML = `<p class="idle">Bàn đang “${X.SHUFFLES[mode].short}”. Sau ván đầu, ô này sẽ cho biết các lá dính chùm từ ván trước dễ rơi vào đâu.</p>`;
+      return;
+    }
+    if (!f.groups.length) {
+      el.innerHTML = '<p class="idle">Ván trước bạn không thấy nhà nào có từ 2 lá cùng số, nên không có cụm nào đáng nhớ.</p>';
+      return;
+    }
+    const groups = f.groups.slice().sort((a, b) => Math.abs(b.real.pairPlus - b.base.pairPlus) - Math.abs(a.real.pairPlus - a.base.pairPlus)).slice(0, 4);
+    const kind = (k) => (k >= 4 ? 'Tứ quý' : k === 3 ? 'Sám' : 'Đôi');
+    el.innerHTML = `<div class="mem">${groups.map((g) => `
+      <div class="mem-row">
+        <div><span class="cards-inline">${g.cards.map(cardTxt).join(' ')}</span> · ${kind(g.cards.length)} ${X.RANKS[g.rank]} của ${g.from} ván trước</div>
+        <div class="mem-bars">
+          <span class="lbl">Ván này rơi vào ${g.cards.length} nhà khác nhau (hoặc nằm lại cỗ bài)</span><span class="val"><b>${X.pct(g.real.split)}</b> <small>trộn kỹ ${X.pct(g.base.split)}</small></span>
+          <span class="lbl">Có nhà nhận ≥ 2 lá trong số này</span><span class="val"><b>${X.pct(g.real.pairPlus)}</b> <small>trộn kỹ ${X.pct(g.base.pairPlus)}</small></span>
+          <span class="lbl">Chính bạn nhận ≥ 2 lá</span><span class="val"><b>${X.pct(g.real.mine2)}</b> <small>trộn kỹ ${X.pct(g.base.mine2)}</small></span>
+        </div>
+      </div>`).join('')}
+      <p class="foot-note">Bài gom theo từng nhà nên các lá này nằm sát nhau; ${X.SHUFFLES[mode].short} chưa tách hết, rồi chia vòng mỗi nhà một lá thì các lá liền nhau rơi sang các nhà khác nhau. Chỉ dựa vào lá bạn đã thấy ván trước. Tính bằng ${fmt(3000)} lần xào thử.</p></div>`;
+  }
+
+  /* ---------- Phòng thí nghiệm ---------- */
+  let labN = Math.max(2, Math.min(4, cfg.players)), labAll = false;
+  function segHTML(name, val, opts) {
+    return opts.map(([v, t]) => `<label><input type="radio" name="${name}" value="${v}"${String(v) === String(val) ? ' checked' : ''}><span>${t}</span></label>`).join('');
+  }
+  function renderLab() {
+    if (!LAB) { $('labIntro').textContent = 'Chưa có dữ liệu phòng thí nghiệm.'; return; }
+    const rule = cfg.rules;
+    $('labIntro').textContent = `Mỗi cấu hình chạy ${fmt(LAB.handsPerRun)} ván liên tiếp, ai cũng theo tới lá thứ 5, bộ bài gom theo từng nhà rồi mới xào cho ván sau. Luật đang dùng: ${X.RULESETS[rule].label}.`;
+    $('labSegStart').innerHTML = segHTML('labN', labN, [[2, '2 người'], [3, '3 người'], [4, '4 người']]);
+    const D = LAB.runs[labN].perfect;
+    const rows = D.start[rule].map(([c, w], i) => ({ i, c, w })).sort((a, b) => b.w - a.w);
+    const fair = 1 / labN, maxW = rows[0].w;
+    $('labStartNote').innerHTML = `Chia đều cho ${labN} người là <b>${X.pct(fair)}</b> (vạch trắng). ${rows.filter((r) => r.w > fair).length}/36 bộ khởi đầu thắng hơn mức đó.`;
+    const shown = labAll ? rows : rows.slice(0, 12);
+    $('labStart').innerHTML = `<thead><tr><th>#</th><th>Bộ khởi đầu</th><th class="num">Thắng</th><th></th><th class="num">Số lần</th></tr></thead><tbody>${shown.map((r, k) => `
+      <tr><td class="num">${k + 1}</td><td>${X.startClassLabel(r.i)}</td><td class="num">${X.pct(r.w)}</td>
+      <td style="width:30%"><div class="wbar${r.w > fair ? ' good' : ''}"><i style="width:${(r.w / maxW * 100).toFixed(1)}%"></i><s style="left:${(fair / maxW * 100).toFixed(1)}%"></s></div></td>
+      <td class="num">${fmt(r.c)}</td></tr>`).join('')}</tbody>
+      ${labAll ? '' : `<tfoot><tr><td colspan="5"><button class="btn" type="button" id="labMore">Xem đủ 36 bộ</button></td></tr></tfoot>`}`;
+    const more = $('labMore'); if (more) more.onclick = () => { labAll = true; renderLab(); };
+    const st = D.street[rule];
+    const catRows = [0, 1, 2, 3, 7].map((cat) => ({ cat, s3: st[0][cat], s4: st[1][cat] })).filter((r) => r.s3[0] || r.s4[0]);
+    $('labStreet').innerHTML = `<thead><tr><th>Đang có</th><th class="num">Ở lá 3</th><th class="num">Ở lá 4</th></tr></thead><tbody>${catRows.map((r) => `
+      <tr><td>${X.CAT_NAMES[r.cat]}</td><td class="num">${r.s3[0] ? X.pct(r.s3[1]) : '—'}</td><td class="num">${r.s4[0] ? X.pct(r.s4[1]) : '—'}</td></tr>`).join('')}</tbody>`;
+    const C = LAB.runs[labN];
+    const keys = Object.keys(LAB.shuffles);
+    const p = C.perfect, lazy = C.cutonly;
+    $('labCarryNote').innerHTML = `Ván trước có nhà cầm Sám (3 lá cùng số nằm liền nhau khi gom). Ván sau ${labN} người, các lá số đó rơi thế nào? Trộn kỹ: <b>${X.pct(p.carry.split)}</b> trường hợp mỗi nhà nhận nhiều nhất 1 lá. Chỉ kinh không xào: <b>${X.pct(lazy.carry.split)}</b>. Xào càng ít, các lá dính chùm càng bị chia rải đều cho các nhà, và cả bàn càng ít ra đôi.`;
+    $('labCarry').innerHTML = `<thead><tr><th>Kiểu xào</th><th class="num">Sám → rải đều</th><th class="num">Sám → có nhà ≥2</th><th class="num">Ra lại Sám</th><th class="num">Đôi → bị tách</th><th class="num">Nhà có đôi+</th></tr></thead><tbody>${keys.map((k) => {
+      const r = C[k];
+      return `<tr class="${k === cfg.shuffle ? 'hi' : ''}"><td>${LAB.shuffles[k]}</td><td class="num">${X.pct(r.carry.split)}</td><td class="num">${X.pct(r.carry.someonePair)}</td><td class="num">${X.pct(r.carry.someoneTrips)}</td><td class="num">${X.pct(r.carryPair.split)}</td><td class="num">${X.pct(r.pairPlusRate)}</td></tr>`;
+    }).join('')}</tbody>`;
+    const sel = $('runShuffle');
+    if (!sel.options.length) sel.innerHTML = keys.map((k) => `<option value="${k}"${k === cfg.shuffle ? ' selected' : ''}>${LAB.shuffles[k]}</option>`).join('');
+  }
+  document.addEventListener('change', (e) => {
+    if (e.target.name === 'labN') { labN = +e.target.value; renderLab(); }
+  });
+
+  let worker = null, running = false;
+  function runLab() {
+    if (running) { if (worker) worker.postMessage({ cmd: 'stop' }); return; }
+    const job = { players: +$('runPlayers').value, shuffle: $('runShuffle').value, hands: +$('runHands').value, seed: (Math.random() * 2 ** 32) >>> 0 };
+    running = true;
+    $('runBtn').textContent = 'Dừng';
+    $('runProg').style.width = '0%';
+    $('runOut').textContent = 'Đang chạy…';
+    const onMsg = (m) => {
+      if (m.type === 'progress') { $('runProg').style.width = (m.done / m.hands * 100).toFixed(1) + '%'; $('runOut').textContent = `Đã chạy ${fmt(m.done)} / ${fmt(m.hands)} ván…`; }
+      if (m.type === 'done') { running = false; $('runBtn').textContent = 'Chạy'; showRun(job, m); }
+    };
+    try {
+      if (!worker) worker = new Worker('xito-sim-worker.js');
+      worker.onmessage = (e) => onMsg(e.data);
+      worker.onerror = () => { worker = null; runInline(job, onMsg); };
+      worker.postMessage(job);
+    } catch (err) { worker = null; runInline(job, onMsg); }
+  }
+  function runInline(job, onMsg) {
+    const st = XitoSim.newStats(job.players), state = {}, rng = XitoSim.mulberry32(job.seed);
+    let done = 0; const t0 = Date.now();
+    (function step() {
+      if (!running) { onMsg({ type: 'done', stopped: true, summary: XitoSim.summarize(st), ms: Date.now() - t0 }); return; }
+      const c = Math.min(2000, job.hands - done);
+      XitoSim.run(st, state, c, job.shuffle, rng); done += c;
+      onMsg({ type: 'progress', done, hands: job.hands });
+      if (done < job.hands) setTimeout(step, 0); else onMsg({ type: 'done', summary: XitoSim.summarize(st), ms: Date.now() - t0 });
+    })();
+  }
+  function showRun(job, m) {
+    const r = m.summary;
+    const top = r.start[cfg.rules].map(([c, w], i) => ({ i, w })).sort((a, b) => b.w - a.w).slice(0, 5);
+    $('runOut').innerHTML = `${m.stopped ? 'Đã dừng sau' : 'Xong'} <b>${fmt(r.hands)}</b> ván (${(m.ms / 1000).toFixed(1)} giây), ${job.players} người, ${LAB ? LAB.shuffles[job.shuffle] : job.shuffle}.<br>
+      Ván trước có Sám → ván sau rải mỗi nhà ≤1 lá: <b>${X.pct(r.carry.split)}</b>, có nhà ≥2 lá: <b>${X.pct(r.carry.someonePair)}</b>, ra lại Sám: <b>${X.pct(r.carry.someoneTrips)}</b> (${fmt(r.carry.cases)} trường hợp).<br>
+      Ván trước có Đôi → ván sau bị tách: <b>${X.pct(r.carryPair.split)}</b>. Nhà có từ đôi trở lên: <b>${X.pct(r.pairPlusRate)}</b>.<br>
+      5 bộ khởi đầu mạnh nhất: ${top.map((t) => `${X.startClassLabel(t.i)} <b>${X.pct(t.w)}</b>`).join(' · ')}.`;
+  }
+  $('runBtn').onclick = runLab;
 
   let distSig = '';
   function renderDist() {
@@ -1187,6 +1486,7 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
     f.ante.value = String(cfg.ante);
     f.stack.value = String(cfg.stack);
     f.rules.value = cfg.rules;
+    f.shuffle.value = cfg.shuffle;
     f.squeeze.value = fx.squeeze;
     f.speed.value = fx.speed;
   }
@@ -1218,12 +1518,18 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
   $('settings').addEventListener('submit', (e) => {
     e.preventDefault();
     const f = e.target;
-    cfg = { players: +f.players.value, ante: +f.ante.value, stack: +f.stack.value, rules: f.rules.value };
+    cfg = { players: +f.players.value, ante: +f.ante.value, stack: +f.stack.value, rules: f.rules.value, shuffle: f.shuffle.value };
     store.set('cfg', cfg);
     toggleSettings(false);
     newGame();
   });
   $('settings').addEventListener('change', (e) => {
+    if (e.target.name === 'shuffle') {
+      cfg.shuffle = e.target.value;
+      store.set('cfg', cfg);
+      if (game) game.shuffleMode = cfg.shuffle;
+      renderMemory();
+    }
     if (e.target.name === 'squeeze' || e.target.name === 'speed') {
       fx[e.target.name] = e.target.value;
       store.set('fx', fx);
