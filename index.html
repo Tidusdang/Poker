@@ -342,7 +342,10 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
   .brand { flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
   .brand h1 { font-size: 27px; }
   .deckline { font-size: 11px; }
-  .top-actions { flex-wrap: nowrap; }
+  .top-actions { flex-wrap: nowrap; gap: 6px; }
+  .top-actions .btn { white-space: nowrap; padding: 8px 10px; }
+  body[data-screen="table"] .rule-line { display: none; }
+  .deckline { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46vw; }
   .top-actions .btn { padding: 7px 11px; }
   .wide-only { display: none; }
   .table { padding: 12px 10px 16px; gap: 10px; }
@@ -362,6 +365,74 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
   .act-row .btn { padding: 13px 8px; flex-basis: 90px; }
   .raise-row .amt { min-width: 52px; }
 }
+
+/* ---------- Bàn 3D và nhãn nổi ---------- */
+.table { padding: 10px 10px 16px; gap: 10px; }
+.stage { position: relative; height: clamp(360px, calc(100dvh - 330px), 640px); border-radius: 12px; overflow: hidden; background: #0b0605; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.stage-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
+.stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse 85% 75% at 50% 55%, transparent 58%, #0b0605b3 100%); }
+.hud { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.hud > .plate, .hud > .betlab, .hud > .potlab, .hud > .bubble { position: absolute; left: 0; top: 0; will-change: transform; }
+.plate { min-width: 78px; max-width: 136px; padding: 3px 8px 4px; border-radius: 10px; background: #170c0ae6; border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; align-items: center; text-align: center; transition: border-color .2s, opacity .2s, box-shadow .2s; }
+.plate.turn { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), 0 0 16px #d2aa5566; }
+.plate.folded { opacity: .55; }
+.plate.win { border-color: var(--gold); background: #2c1a12f2; }
+.pl-top { display: flex; gap: 6px; align-items: baseline; white-space: nowrap; }
+.pl-name { font-weight: 600; font-size: 12px; }
+.pl-stack { font-family: var(--mono); font-size: 12px; color: var(--gold); font-variant-numeric: tabular-nums; }
+.pl-sub { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; align-items: center; font-size: 11px; }
+.pl-sub:empty { display: none; }
+.pl-sub .showing { font-size: 11px; }
+.pl-sub .tag { font-size: 10px; padding: 1px 6px; }
+.hud > .plate.meplate { left: 50%; top: auto; bottom: 5px; transform: translateX(-50%); max-width: 96%; flex-direction: row; gap: 8px; padding: 3px 12px; white-space: nowrap; }
+.meplate .pl-sub { flex-wrap: nowrap; overflow: hidden; }
+.hud .banner { top: 14%; }
+.meplate .pl-name { font-size: 13px; } .meplate .pl-stack { font-size: 13px; }
+.betlab { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--eggshell); background: var(--cinnabar-deep); border: 1px solid var(--cinnabar); border-radius: 999px; padding: 0 7px; font-variant-numeric: tabular-nums; }
+.potlab { display: flex; gap: 6px; align-items: baseline; background: #170c0ae6; border: 1px solid var(--gold-dim); border-radius: 999px; padding: 2px 12px; }
+.potlab small { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.potlab b { font-family: var(--mono); font-size: 14px; color: var(--gold); font-variant-numeric: tabular-nums; }
+.bubble { max-width: min(80%, 300px); background: var(--eggshell); color: var(--ink); font-size: 12.5px; font-weight: 600; line-height: 1.3; border-radius: 12px; padding: 4px 12px; text-align: center; box-shadow: 0 6px 16px #000000aa; text-wrap: balance; }
+.hud .streets { position: absolute; right: 10px; top: 10px; }
+.hud .streets span { width: 18px; height: 3px; }
+.stage.nogl { height: auto; padding: 14px; }
+.stage.nogl .hud { position: static; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.stage.nogl .hud > * { position: static; transform: none !important; }
+
+/* ---------- Sảnh ---------- */
+.lobby { display: flex; flex-direction: column; gap: 14px; max-width: 760px; margin: 0 auto; width: 100%; }
+.lobby-hero { position: relative; height: clamp(250px, 40vh, 430px); border-radius: 16px; overflow: hidden; border: 1px solid #5b3a20; box-shadow: 0 20px 40px -20px #000; background: #0b0605; }
+.lobby-hero .stage { height: 100%; border-radius: 0; }
+.hero-copy { position: absolute; left: 18px; bottom: 14px; z-index: 3; pointer-events: none; display: flex; flex-direction: column; gap: 2px; text-shadow: 0 2px 12px #000; }
+.hero-copy span { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #c9b8a4; }
+.hero-copy strong { font-family: var(--display); font-size: 38px; line-height: 1; color: var(--eggshell); font-weight: 700; }
+.hero-chip { position: absolute; right: 14px; bottom: 18px; z-index: 3; font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--gold); border: 1px solid var(--gold-dim); border-radius: 999px; padding: 4px 10px; background: #1a0c0acc; }
+.profile { display: flex; align-items: center; gap: 12px; padding: 0 2px 12px; border-bottom: 1px solid #3a2018; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--gold); display: grid; place-items: center; font-family: var(--display); font-size: 22px; font-weight: 700; color: var(--gold); background: var(--lacquer-2); flex: none; }
+.who { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.who b { font-size: 15px; } .who span { font-size: 12px; color: #b9a591; }
+.bank { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px 6px 8px; background: var(--panel); }
+.coin { width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle, var(--eggshell) 0 24%, var(--gold) 25% 62%, var(--eggshell) 63% 70%, var(--gold) 71%); }
+.bank span { font-family: var(--mono); font-weight: 600; font-size: 15px; color: var(--gold); font-variant-numeric: tabular-nums; }
+.lobby-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #b9a591; }
+.rooms { display: flex; flex-direction: column; gap: 10px; }
+.room { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); cursor: pointer; transition: border-color .15s; }
+.room.on { border-color: var(--gold); background: linear-gradient(180deg, #2a160f, var(--panel)); }
+.felt { width: 56px; height: 40px; border-radius: 50%; border: 4px solid #1a0d0b; box-shadow: inset 0 0 0 1px var(--gold); flex: none; }
+.felt-jade { background: radial-gradient(ellipse, #2f7a5c, #174433); }
+.felt-son { background: radial-gradient(ellipse, #9a2a1b, #5a160e); }
+.felt-huyen { background: radial-gradient(ellipse, #2a2422, #0f0b0a); }
+.room-t { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.room-t b { font-family: var(--display); font-size: 22px; line-height: 1.1; }
+.room-t span { font-size: 12px; color: #b9a591; }
+.room .btn { height: 44px; padding: 0 16px; border-radius: 10px; font-size: 14px; border-color: var(--gold-dim); color: var(--gold); background: transparent; flex: none; }
+.room .btn.gold { color: var(--ink); background: var(--gold); border-color: var(--gold); }
+.lobby-foot { display: flex; gap: 8px; flex-wrap: wrap; }
+.lobby-foot .btn { min-height: 44px; }
+body[data-screen="lobby"] .main, body[data-screen="lobby"] .tabbar, body[data-screen="lobby"] #btnLobby, body[data-screen="lobby"] .hud { display: none; }
+body[data-screen="table"] .lobby { display: none; }
+#lobbyLab .lab { display: flex; }
 
 /* ---------- Giải thích gợi ý, ghi nhớ ván trước, phòng thí nghiệm ---------- */
 details.why { border-top: 1px solid var(--line); padding-top: 8px; }
@@ -423,41 +494,17 @@ details.why[open] summary::before { content: "▾ "; }
   <header class="top">
     <div class="brand">
       <h1>Xì Tố <b>24</b></h1>
-      <div class="deckline"><span class="wide-only deckranks">9 · 10 · J · Q · K · A &nbsp;×&nbsp; <b>♠ ♥ ♦ ♣</b> &nbsp;·&nbsp; </span><span id="ruleLine">Luật gốc</span></div>
+      <div class="deckline"><span class="wide-only deckranks">9 · 10 · J · Q · K · A &nbsp;×&nbsp; <b>♠ ♥ ♦ ♣</b> &nbsp;·&nbsp; </span><span id="roomLine"></span><span id="ruleLine" class="rule-line">Luật gốc</span></div>
     </div>
     <div class="top-actions">
       <button class="btn ghost" id="btnSound" type="button" aria-pressed="false" aria-label="Âm thanh">Âm thanh: tắt</button>
       <button class="btn ghost" id="btnSettings" type="button" aria-expanded="false" aria-controls="settings">Cài đặt<span class="wide-only"> bàn</span></button>
-      <button class="btn wide-only" id="btnNewGame" type="button">Ván mới từ đầu</button>
+      <button class="btn" id="btnLobby" type="button">‹ Sảnh</button>
     </div>
   </header>
 
   <form class="settings" id="settings" hidden>
-    <div class="group-h"><h3>Bàn chơi</h3><span>Áp dụng khi bắt đầu lại</span></div>
-    <fieldset>
-      <legend>Số người chơi</legend>
-      <div class="seg">
-        <label><input type="radio" name="players" id="pl2" value="2"><span>2</span></label>
-        <label><input type="radio" name="players" id="pl3" value="3"><span>3</span></label>
-        <label><input type="radio" name="players" id="pl4" value="4" checked><span>4</span></label>
-      </div>
-    </fieldset>
-    <fieldset>
-      <legend>Cược sàn</legend>
-      <div class="seg">
-        <label><input type="radio" name="ante" id="an5" value="5"><span>5</span></label>
-        <label><input type="radio" name="ante" id="an10" value="10" checked><span>10</span></label>
-        <label><input type="radio" name="ante" id="an25" value="25"><span>25</span></label>
-      </div>
-    </fieldset>
-    <fieldset>
-      <legend>Chip mỗi người</legend>
-      <div class="seg">
-        <label><input type="radio" name="stack" id="st500" value="500"><span>500</span></label>
-        <label><input type="radio" name="stack" id="st1000" value="1000" checked><span>1.000</span></label>
-        <label><input type="radio" name="stack" id="st2000" value="2000"><span>2.000</span></label>
-      </div>
-    </fieldset>
+    <div class="group-h"><h3>Luật chơi</h3><span>Đổi luật thì bàn đang chơi chia lại từ đầu</span></div>
     <fieldset>
       <legend>Xếp hạng bài</legend>
       <label class="rule-opt"><input type="radio" name="rules" id="ruStd" value="standard" checked><span>Luật gốc<small>Cù lũ &gt; Thùng</small></span></label>
@@ -494,22 +541,47 @@ details.why[open] summary::before { content: "▾ "; }
     <div class="row-end">
       <span class="note"><span id="verNote"></span>Bạn luôn ngồi ghế dưới cùng.</span>
       <button class="btn" type="button" id="btnCloseSettings">Đóng</button>
-      <button class="btn gold" type="submit">Bắt đầu lại với cài đặt này</button>
+      <button class="btn gold" type="submit">Lưu cài đặt</button>
     </div>
   </form>
 
-  <div class="main" id="main" data-tab="table">
-    <section class="table" aria-label="Bàn chơi">
-      <div class="opps" id="opps"></div>
-      <div class="center">
-        <div class="deck" id="deck" aria-hidden="true"></div>
-        <div class="pot-label">Hũ</div>
-        <div class="pot" id="pot">0</div>
-        <div class="streets" id="streets" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-        <div class="msg" id="msg" aria-live="polite"></div>
-        <div class="banner" id="banner" hidden><small id="bannerWho"></small><strong id="bannerHand"></strong></div>
+  <section class="lobby" id="lobby" aria-label="Sảnh">
+    <div class="lobby-hero" id="lobbyHero">
+      <div class="hero-copy"><span>Sòng bài sơn mài · bộ 24 lá</span><strong>Mời vào bàn</strong></div>
+      <span class="hero-chip">Bàn 3D trực tiếp</span>
+    </div>
+    <div class="profile">
+      <div class="avatar" aria-hidden="true">B</div>
+      <div class="who"><b>Bạn</b><span id="lobbyStats"></span></div>
+      <div class="bank" title="Kho chip của bạn"><i class="coin" aria-hidden="true"></i><span id="bankAmt">0</span></div>
+    </div>
+    <div class="lobby-row">
+      <span class="eyebrow">Chọn phòng</span>
+      <div class="seg" id="lobbyPlayers" role="group" aria-label="Số người chơi">
+        <label><input type="radio" name="lpl" id="lp2" value="2"><span>2 người</span></label>
+        <label><input type="radio" name="lpl" id="lp3" value="3"><span>3 người</span></label>
+        <label><input type="radio" name="lpl" id="lp4" value="4"><span>4 người</span></label>
       </div>
-      <div class="me" id="meSeat"></div>
+    </div>
+    <div class="rooms" id="rooms"></div>
+    <div class="lobby-foot">
+      <button class="btn" id="btnRefill" type="button" hidden>Nhận 2.000 chip luyện tập</button>
+      <button class="btn ghost" id="btnLobbyLab" type="button" aria-expanded="false">Kinh nghiệm 1 triệu ván</button>
+    </div>
+    <div id="lobbyLab" hidden></div>
+  </section>
+
+  <div class="main" id="main" data-tab="table">
+    <section class="table" id="tableSec" aria-label="Bàn chơi">
+      <div class="stage" id="stage">
+        <div class="hud" id="hud">
+          <div class="streets" id="streets" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+          <div class="bubble" id="bubble" aria-live="polite" hidden></div>
+          <div class="potlab" id="potLab"><small>Hũ</small><b id="pot">0</b></div>
+          <div class="banner" id="banner" hidden><small id="bannerWho"></small><strong id="bannerHand"></strong></div>
+          <div class="plate meplate" id="mePlate"><div class="pl-top"><span class="pl-name">Bạn</span><span class="pl-stack"></span></div><div class="pl-sub"></div></div>
+        </div>
+      </div>
       <div class="dock">
         <div class="coachstrip" id="coachStrip" aria-live="polite"></div>
         <div class="actions" id="actions"></div>
@@ -619,8 +691,10 @@ details.why[open] summary::before { content: "▾ "; }
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="xito-engine.js"></script>
 <script src="xito-fx.js"></script>
+<script src="xito-stage.js"></script>
 <script src="xito-sim.js"></script>
 <script src="xito-lab-data.js"></script>
 <script>
@@ -666,7 +740,6 @@ details.why[open] summary::before { content: "▾ "; }
   let fx = Object.assign({ squeeze: 'last', speed: 'normal', sound: false }, store.get('fx', {}));
   let stats = Object.assign({ hands: 0, won: 0, net: 0, decisions: 0, good: 0 }, store.get('stats', {}));
   let game, ui, analysis = null, lastFeedback = null, gameId = 0, raiseTo = 0;
-  let seatEls = [];
 
   /* ---------------- nhịp độ ---------------- */
   const reduceMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -684,34 +757,46 @@ details.why[open] summary::before { content: "▾ "; }
 
   function freshUi() {
     return { dealt: new Set(), revealed: new Set(), toSqueeze: new Set(), holeSeen: false,
-      hidePayout: false, resultsShown: false, best: new Set(), squeezing: false, dealing: false };
+      hidePayout: false, resultsShown: false, best: new Set(), squeezing: false, dealing: new Set(), folded: new Set(), busy: false, shuffling: false };
   }
 
-  /* ---------------- dựng bàn ---------------- */
+  /* ---------------- sảnh, phòng, kho chip ---------------- */
+  const ROOMS = [
+    { key: 'tap', name: 'Phòng Tập', ante: 5, buyIn: 500, felt: 'jade' },
+    { key: 'son', name: 'Phòng Son', ante: 10, buyIn: 1000, felt: 'son' },
+    { key: 'huyen', name: 'Phòng VIP Huyền', ante: 25, buyIn: 2500, felt: 'huyen' },
+  ];
+  let bank = store.get('bank', 5000);
+  { const held = store.get('held', 0); if (held > 0) { bank += held; store.set('held', 0); store.set('bank', bank); } }
+  let room = ROOMS.find((r) => r.key === cfg.room) || ROOMS[1];
+  let screen = 'lobby';
+
+  /* ---------------- bàn 3D ---------------- */
+  const stage = window.XitoStage ? window.XitoStage.create($('stage'), { motion, sound: (k) => Sound.play(k) }) : null;
+  const noop = () => Promise.resolve();
+  const S = stage || new Proxy({}, { get: (_, k) => (k === 'anchor' || k === 'pick' ? () => null : noop) });
+  if (!stage) $('stage').classList.add('nogl');
+  let plates = [], betLabs = [];
+
   function buildSeats() {
-    seatEls = [];
-    $('opps').innerHTML = '';
-    $('meSeat').innerHTML = '';
-    const opps = game.players.filter((p) => !p.human);
-    $('opps').style.setProperty('--n', opps.length);
+    document.querySelectorAll('#hud .plate:not(.meplate), #hud .betlab').forEach((e) => e.remove());
+    plates = []; betLabs = [];
+    S.detachAll(); S.reset(); S.setSeats(game.players.length); S.setFelt(room.felt);
+    const hud = $('hud');
     for (const p of game.players) {
-      const root = document.createElement('div');
-      root.className = 'seat';
-      root.innerHTML = `<div class="seat-head"><span class="seat-name"></span>${p.style ? `<span class="seat-style">${X.STYLES[p.style].label}</span>` : ''}<span class="seat-stack"></span></div>
-        <div class="cards"></div><div class="seat-foot"></div>`;
-      root.querySelector('.seat-name').textContent = p.name;
-      (p.human ? $('meSeat') : $('opps')).appendChild(root);
-      seatEls[p.id] = { root, stack: root.querySelector('.seat-stack'), cards: root.querySelector('.cards'), foot: root.querySelector('.seat-foot') };
+      const bl = document.createElement('div'); bl.className = 'betlab'; bl.hidden = true; hud.appendChild(bl); betLabs[p.id] = bl;
+      S.attach(bl, S.anchor('bet', p.id), 22);
+      if (p.human) { plates[p.id] = $('mePlate'); continue; }
+      const el = document.createElement('div'); el.className = 'plate';
+      el.innerHTML = '<div class="pl-top"><span class="pl-name"></span><span class="pl-stack"></span></div><div class="pl-sub"></div>';
+      el.querySelector('.pl-name').textContent = p.name;
+      hud.appendChild(el); plates[p.id] = el;
+      S.attach(el, S.anchor('plate', p.id), 50, 'bottom');
     }
+    S.attach($('potLab'), S.anchor('pot'), 34);
+    S.attach($('bubble'), S.anchor('dealer'), 96);
   }
 
-  function makeCard(c) {
-    const el = document.createElement('div');
-    el.className = 'card' + (X.isRed(c) ? ' red' : '');
-    const r = X.RANKS[X.rankOf(c)], s = X.SUITS[X.suitOf(c)];
-    el.innerHTML = `<div class="flip"><div class="face front"><span class="ix">${r}<i>${s}</i></span><span class="pip">${s}</span></div><div class="face back"></div></div>`;
-    return el;
-  }
   const keyOf = (c) => game.handNo + ':' + c;
   const isRunout = () => game.live().filter((q) => !q.allIn).length < 2;
 
@@ -729,113 +814,44 @@ details.why[open] summary::before { content: "▾ "; }
     return p.human && ui.toSqueeze.has(keyOf(c));
   }
 
-  function syncCards(p) {
-    const box = seatEls[p.id].cards;
-    if (box.dataset.hand !== String(game.handNo)) { box.innerHTML = ''; box.dataset.hand = String(game.handNo); }
-    p.cards.forEach((c, k) => {
-      const key = keyOf(c);
-      let el = box.children[k];
-      if (!el || el.dataset.key !== key) {
-        el = makeCard(c);
-        el.dataset.key = key; el.dataset.idx = k; el.dataset.seat = p.id;
-        if (!ui.dealt.has(key)) el.classList.add('pending');
-        box.appendChild(el);
-        if (p.human) {
-          if (k === 0) setupHole(el, c);
-          if (needsSqueeze(k)) ui.toSqueeze.add(key);
-        }
-      }
-      el.classList.toggle('down', isDown(p, k, c));
-      el.classList.toggle('best', ui.best.has(p.id));
-      if (p.human && k === 0) {
-        const hidden = !ui.revealed.has(0);
-        el.classList.toggle('hole', hidden);
-        el.classList.toggle('seen', ui.holeSeen);
-        el.dataset.note = ui.holeSeen ? X.cardLabel(c) : 'giữ để xem';
-        el.tabIndex = hidden ? 0 : -1;
-      }
-    });
-  }
-
-  function setupHole(el, c) {
-    el.setAttribute('role', 'button');
-    el.setAttribute('aria-label', 'Lá úp của bạn. Nhấn giữ để hé xem.');
-    F.attachPeek(el, c, {
-      motion,
-      disabled: () => ui.revealed.has(0) || el.classList.contains('pending') || ui.toSqueeze.has(el.dataset.key),
-      onPeek: () => {
-        Sound.play('flip'); haptic('light');
-        if (!ui.holeSeen) { ui.holeSeen = true; render(); }
-      },
-    });
-  }
-
-  /* ---------------- hoạt ảnh: chia bài ---------------- */
-  async function animateDeals(gid) {
-    const pend = [...document.querySelectorAll('.cards .card.pending')];
-    if (!pend.length) return;
-    ui.dealing = true; render();
+  /* ---------------- chia bài: dealer vẩy từng lá ---------------- */
+  async function dealNew(gid) {
+    const todo = [];
+    for (const p of game.players) p.cards.forEach((c, k) => { const key = keyOf(c); if (!ui.dealt.has(key) && !ui.dealing.has(key)) todo.push({ p, c, k, key }); });
+    if (!todo.length) return;
     const n = game.players.length;
-    const order = (el) => (+el.dataset.idx) * 10 + ((+el.dataset.seat - 1 + n) % n);
-    pend.sort((a, b) => order(a) - order(b));
-    const m = motion();
-    const finish = (el) => { el.classList.remove('pending'); ui.dealt.add(el.dataset.key); };
-    if (m === 0) { pend.forEach(finish); ui.dealing = false; render(); return; }
-    const deck = $('deck').getBoundingClientRect();
-    const stagger = 120 * m, dur = 430 * m;
-    await Promise.all(pend.map(async (el, i) => {
-      await sleep(i * stagger);
+    todo.sort((a, b) => (a.k - b.k) || (((a.p.id - 1 + n) % n) - ((b.p.id - 1 + n) % n)));
+    ui.busy = true; render();
+    await Promise.all(todo.map(async (d, i) => {
+      ui.dealing.add(d.key);
+      if (d.p.human && needsSqueeze(d.k)) ui.toSqueeze.add(d.key);
+      await sleep(i * 175 * motion());
       if (gid !== gameId) return;
-      const tr = el.getBoundingClientRect();
-      const clone = makeCard(+el.dataset.key.split(':')[1]);
-      clone.classList.add('down');
-      clone.style.cssText = `--w:${tr.width}px;left:${tr.left}px;top:${tr.top}px;`;
-      $('fx').appendChild(clone);
-      const dx = deck.left + deck.width / 2 - (tr.left + tr.width / 2);
-      const dy = deck.top + deck.height / 2 - (tr.top + tr.height / 2);
-      const sc = deck.width / tr.width;
-      const faceUp = !el.classList.contains('down');
-      Sound.play('deal');
-      if (faceUp) setTimeout(() => clone.classList.remove('down'), dur * 0.25);
-      const a = clone.animate([
-        { transform: `translate(${dx}px, ${dy}px) scale(${sc}) rotate(-18deg)` },
-        { transform: `translate(${dx * 0.35}px, ${dy * 0.35 - 18}px) scale(${(sc + 1) / 2}) rotate(-6deg)`, offset: 0.6 },
-        { transform: 'none' },
-      ], { duration: dur, easing: 'cubic-bezier(.2,.75,.25,1)' });
-      await a.finished.catch(() => {});
-      if (faceUp) await sleep(Math.max(0, 0.45 * m * 1000 - dur * 0.75));
-      clone.remove();
-      finish(el);
+      await S.deal(d.p.id, d.c, d.k, !isDown(d.p, d.k, d.c));
+      ui.dealt.add(d.key);
     }));
-    ui.dealing = false;
-    render();
+    ui.busy = false;
+    if (gid === gameId) render();
   }
 
-  /* ---------------- hoạt ảnh: chip ---------------- */
-  function centerOf(el) { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
-  function chipFly(fromEl, toEl, count, gold) {
-    const m = motion();
-    if (m === 0 || !fromEl || !toEl) return Promise.resolve();
-    const a = centerOf(fromEl), b = centerOf(toEl);
-    const jobs = [];
-    for (let i = 0; i < count; i++) {
-      const c = document.createElement('div');
-      c.className = 'chip' + (gold ? ' gold' : '');
-      c.style.left = a.x + 'px'; c.style.top = a.y + 'px';
-      $('fx').appendChild(c);
-      const jx = (Math.random() - 0.5) * 14, jy = (Math.random() - 0.5) * 10;
-      const anim = c.animate([
-        { transform: 'translate(0,0) scale(.8)', opacity: 0 },
-        { opacity: 1, offset: 0.15 },
-        { transform: `translate(${(b.x - a.x) / 2 + jx}px, ${(b.y - a.y) / 2 - 30}px) scale(1.05)`, offset: 0.55 },
-        { transform: `translate(${b.x - a.x + jx}px, ${b.y - a.y + jy}px) scale(.9)`, opacity: 1 },
-      ], { duration: 520 * m, delay: i * 55 * m, easing: 'cubic-bezier(.3,.6,.3,1)', fill: 'backwards' });
-      setTimeout(() => Sound.play('chip'), (i * 55 + 480) * m);
-      jobs.push(anim.finished.catch(() => {}).then(() => c.remove()));
-    }
-    return Promise.all(jobs);
+  // nhấn giữ lá úp của mình để nhấc lên xem
+  if (stage) {
+    const cv = stage.el;
+    cv.addEventListener('pointerdown', (e) => {
+      if (!game || screen !== 'table' || e.button > 0) return;
+      const hit = stage.pick(e.clientX, e.clientY);
+      if (!hit || hit.idx !== 0) return;
+      const me = game.players[0];
+      const key = me.cards.length ? keyOf(me.cards[0]) : '';
+      if (me.folded || ui.revealed.has(0) || !ui.dealt.has(key) || ui.toSqueeze.has(key)) return;
+      e.preventDefault();
+      try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+      stage.peek(true); haptic('light');
+      if (!ui.holeSeen) { ui.holeSeen = true; render(); }
+    });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => cv.addEventListener(ev, () => stage.endPeek()));
+    cv.addEventListener('contextmenu', (e) => e.preventDefault());
   }
-  const chipCount = (amt) => Math.max(2, Math.min(7, Math.round(Math.log2(1 + amt / Math.max(1, game.ante)) + 1)));
 
   /* ---------------- nặn bài ---------------- */
   async function runSqueezes(gid) {
@@ -859,19 +875,76 @@ details.why[open] summary::before { content: "▾ "; }
       if (k === 0) ui.holeSeen = true;
       ui.squeezing = false;
       render();
-      await sleep(260 * motion());
+      if (k > 0) await S.flip(0, k, true, false);
     }
   }
 
-  /* ---------------- vòng lặp ván ---------------- */
-  function newGame() {
+  /* ---------------- vào bàn, rời bàn ---------------- */
+  function enterRoom(r) {
+    if (bank < r.buyIn) return;
+    room = r; cfg.room = r.key; store.set('cfg', cfg);
+    bank -= r.buyIn; store.set('bank', bank); store.set('held', r.buyIn);
+    setScreen('table');
+    newGame(r.buyIn);
+  }
+  function leaveTable() {
+    if (!game) { setScreen('lobby'); return; }
     gameId++;
     if (F.squeeze.cancel) F.squeeze.cancel();
-    $('fx').innerHTML = '';
+    bank += game.players[0].stack; store.set('bank', bank); store.set('held', 0);
+    game = null; analysis = null;
+    S.reset(); S.turn(-1);
+    setScreen('lobby');
+  }
+  function setScreen(sc) {
+    screen = sc;
+    document.body.dataset.screen = sc;
+    const st = $('stage');
+    if (sc === 'lobby') {
+      $('lobbyHero').insertBefore(st, $('lobbyHero').firstChild);
+      $('lobbyLab').appendChild($('lab'));
+      $('roomLine').textContent = '';
+      S.setFelt(room.felt); S.camera('lobby', 1300);
+      renderLobby(); renderLab();
+    } else {
+      $('tableSec').insertBefore(st, $('tableSec').firstChild);
+      $('main').appendChild($('lab'));
+      $('roomLine').innerHTML = room.name + ' · sàn ' + fmt(room.ante) + '<span class="wide-only"> · </span>';
+      S.camera('play', 1400);
+      setTab('table');
+    }
+    S.resize();
+    window.scrollTo(0, 0);
+  }
+  function renderLobby() {
+    $('bankAmt').textContent = fmt(bank);
+    const acc = stats.decisions ? Math.round((stats.good / stats.decisions) * 100) + '%' : '—';
+    $('lobbyStats').textContent = stats.hands ? `${fmt(stats.hands)} ván · chuẩn xác ${acc} · lãi/lỗ ${stats.net > 0 ? '+' : ''}${fmt(stats.net)}` : 'Chưa chơi ván nào';
+    $('rooms').innerHTML = ROOMS.map((r) => `<div class="room${r.key === room.key ? ' on' : ''}" data-pick="${r.key}">
+      <span class="felt felt-${r.felt}" aria-hidden="true"></span>
+      <div class="room-t"><b>${r.name}</b><span>Cược sàn ${fmt(r.ante)} · mang vào ${fmt(r.buyIn)}</span></div>
+      <button class="btn${r.key === room.key ? ' gold' : ''}" type="button" data-room="${r.key}"${bank < r.buyIn ? ' disabled' : ''}>${bank < r.buyIn ? 'Thiếu chip' : 'Vào bàn'}</button></div>`).join('');
+    $('btnRefill').hidden = bank >= ROOMS[1].buyIn;
+    const lp = document.querySelector(`#lobbyPlayers input[value="${cfg.players}"]`); if (lp) lp.checked = true;
+  }
+  $('rooms').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-room]');
+    if (b) { enterRoom(ROOMS.find((r) => r.key === b.dataset.room)); return; }
+    const row = e.target.closest('[data-pick]');
+    if (row) { room = ROOMS.find((r) => r.key === row.dataset.pick); S.setFelt(room.felt); renderLobby(); }
+  });
+  $('lobbyPlayers').addEventListener('change', (e) => { cfg.players = +e.target.value; store.set('cfg', cfg); labN = cfg.players; renderLab(); });
+  $('btnRefill').onclick = () => { bank += 2000; store.set('bank', bank); renderLobby(); };
+  $('btnLobbyLab').onclick = () => { const open = $('lobbyLab').hidden; $('lobbyLab').hidden = !open; $('btnLobbyLab').setAttribute('aria-expanded', String(open)); if (open) $('lobbyLab').scrollIntoView({ block: 'start', behavior: motion() ? 'smooth' : 'auto' }); };
+
+  /* ---------------- vòng lặp ván ---------------- */
+  function newGame(myStack) {
+    gameId++;
+    if (F.squeeze.cancel) F.squeeze.cancel();
     $('banner').hidden = true;
-    const players = [{ name: 'Bạn', human: true, stack: cfg.stack }]
-      .concat(BOTS.slice(0, cfg.players - 1).map((b) => ({ ...b, stack: cfg.stack })));
-    game = new X.Game({ players, ante: cfg.ante, rules: cfg.rules, shuffleMode: cfg.shuffle });
+    const players = [{ name: 'Bạn', human: true, stack: myStack }]
+      .concat(BOTS.slice(0, cfg.players - 1).map((b) => ({ ...b, stack: room.buyIn })));
+    game = new X.Game({ players, ante: room.ante, rules: cfg.rules, shuffleMode: cfg.shuffle });
     ui = freshUi();
     lastFeedback = null; analysis = null;
     $('ruleLine').textContent = X.RULESETS[cfg.rules].label;
@@ -884,7 +957,7 @@ details.why[open] summary::before { content: "▾ "; }
   async function startHand() {
     const gid = gameId;
     for (const p of game.players) {
-      if (!p.human && p.stack <= 0) { p.stack = cfg.stack; game.emit(`${p.name} nạp lại ${fmt(cfg.stack)} chip`); }
+      if (!p.human && p.stack <= 0) { p.stack = room.buyIn; game.emit(`${p.name} mang thêm ${fmt(room.buyIn)} chip`); }
     }
     if (game.players[0].stack <= 0) { render(); return; }
     lastFeedback = null; analysis = null;
@@ -892,27 +965,41 @@ details.why[open] summary::before { content: "▾ "; }
     const forecast = makeForecast();
     ui = freshUi();
     ui.forecast = forecast;
+    ui.shuffling = true;
+    S.highlight(null);
+    render();
+    await S.newHand(game.shuffleMode);
+    if (gid !== gameId) return;
+    ui.shuffling = false;
     game.startHand();
     render();
-    // cược sàn bay vào hũ
-    game.players.forEach((p) => { if (!p.out) chipFly(seatEls[p.id].stack, $('pot'), 1); });
-    await sleep(420 * motion());
+    await S.ante(game.players.filter((p) => !p.out).map((p) => p.id), game.pot);
     if (gid !== gameId) return;
     loop(gid);
+  }
+
+  async function applyAction(p, type, amount) {
+    const before = p.committed;
+    game.act(p.id, type, amount);
+    const paid = p.committed - before;
+    render();
+    if (p.folded && !ui.folded.has(p.id)) { ui.folded.add(p.id); await S.fold(p.id); }
+    else if (paid > 0) await S.bet(p.id, p.bet, paid);
   }
 
   async function loop(gid = gameId) {
     while (gid === gameId) {
       analysis = null;
       render();
-      await animateDeals(gid);
+      await dealNew(gid);
       if (gid !== gameId) return;
       await runSqueezes(gid);
       if (gid !== gameId) return;
 
       if (game.phase === 'between') {
+        await S.collect(game.pot);
         const runout = isRunout() && game.street < 5;
-        await wait(runout ? 1300 : 650);
+        await wait(runout ? 900 : 300);
         if (gid !== gameId) return;
         game.proceed();
         continue;
@@ -936,11 +1023,7 @@ details.why[open] summary::before { content: "▾ "; }
       await sleep((650 + Math.random() * 500) * pace());
       if (gid !== gameId) return;
       const d = X.botDecide(game, p.id);
-      const before = p.committed;
-      game.act(p.id, d.type, d.raiseTo);
-      const paid = p.committed - before;
-      render();
-      if (paid > 0) await chipFly(seatEls[p.id].stack, $('pot'), chipCount(paid));
+      await applyAction(p, d.type, d.raiseTo);
     }
   }
 
@@ -953,66 +1036,65 @@ details.why[open] summary::before { content: "▾ "; }
     if (g.ok === true) stats.good++;
     else if (g.ok === null) stats.good += 0.5;
     store.set('stats', stats);
-    const me = game.players[0];
-    const before = me.committed;
-    game.act(0, type, raiseTo);
     analysis = null;
-    render();
-    const paid = me.committed - before;
+    S.endPeek();
     const gid = gameId;
-    if (paid > 0) await chipFly(seatEls[0].stack, $('pot'), chipCount(paid));
+    await applyAction(game.players[0], type, raiseTo);
     if (gid === gameId) loop(gid);
   }
 
   async function showdownSequence(gid) {
     const res = game.results;
-    ui.hidePayout = true; ui.resultsShown = false;
+    ui.hidePayout = true; ui.resultsShown = false; ui.busy = false;
+    S.endPeek();
     render();
+    const total = res.pots.reduce((s, p) => s + p.amount, 0);
+    await S.collect(total);
+    if (gid !== gameId) return;
     if (!res.byFold) {
+      S.camera('showdown', 700);
       // lật lần lượt: ai bỏ ít tiền lật trước, người tất tay / bỏ nhiều nhất lật sau cùng
       const live = game.live().slice().sort((a, b) => (a.committed - b.committed) || (a.human ? -1 : 1));
       for (let i = 0; i < live.length; i++) {
         if (gid !== gameId) return;
         const p = live[i];
         const last = i === live.length - 1 && live.length > 1;
-        const hole = seatEls[p.id].cards.children[0];
-        if (hole && hole._peekEnd) hole._peekEnd();
-        if (last && hole && motion() > 0) {
-          hole.classList.add('suspense');
-          await wait(850);
-          hole.classList.remove('suspense');
-        }
+        S.look(p.id);
+        if (last) await wait(650);
         ui.revealed.add(p.id);
-        Sound.play('flip');
         render();
-        await wait(last ? 900 : 650);
+        await S.flip(p.id, 0, true, true);
+        await wait(last ? 450 : 200);
       }
-      const top = res.pots[res.pots.length - 1].winners[0];
-      const main = res.pots[0].winners[0];
-      ui.best = new Set(res.pots.flatMap((pt) => pt.winners));
+      const main = res.pots[0].winners[0], top = res.pots[res.pots.length - 1].winners[0];
+      const ids = [...new Set(res.pots.flatMap((pt) => pt.winners))];
+      ui.best = new Set(ids);
+      S.highlight(ids);
       render();
       const w = game.players[main];
       $('bannerWho').textContent = w.name + (res.pots.length > 1 && top !== main ? ' · hũ chính' : '');
       $('bannerHand').textContent = X.describe(w.cards);
-      $('banner').hidden = false;
+      $('banner').hidden = false; $('bubble').hidden = true;
       Sound.play('win');
       if (main === 0) haptic('heavy');
       await wait(1500);
       $('banner').hidden = true;
       if (gid !== gameId) return;
     } else {
-      await wait(350);
+      await wait(300);
     }
-    // trả hũ về người thắng
-    await Promise.all(res.pots.map((pt) => chipFly($('pot'), seatEls[pt.winners[0]].stack, chipCount(pt.amount), true)));
-    if (gid !== gameId) return;
+    // dealer đẩy hũ về người thắng
+    let left = total;
+    for (const pt of res.pots) { left -= pt.amount; await S.pay(pt.winners[0], pt.amount, left); if (gid !== gameId) return; }
     ui.hidePayout = false; ui.resultsShown = true;
     if (res.byFold) ui.best = new Set(res.pots.flatMap((pt) => pt.winners));
+    S.camera('play', 600);
   }
 
   function finishHand() {
     if (game._counted === game.handNo) return;
     game._counted = game.handNo;
+    store.set('held', game.players[0].stack);
     const net = game.results.net[0];
     if (net === undefined) return;
     stats.hands++;
@@ -1047,8 +1129,11 @@ details.why[open] summary::before { content: "▾ "; }
       ? (ui.resultsShown ? 0 : game.results.pots.reduce((s, p) => s + p.amount, 0))
       : game.pot;
     $('pot').textContent = fmt(pot);
+    $('potLab').hidden = pot <= 0;
     [...$('streets').children].forEach((el, k) => el.classList.toggle('on', game.street >= k + 2));
-    $('msg').textContent = message();
+    const msg = message();
+    $('bubble').textContent = msg; $('bubble').hidden = !msg || !$('banner').hidden;
+    S.turn(game.phase === 'betting' && !ui.busy && !ui.squeezing && !ui.shuffling ? game.toAct : -1);
     renderActions();
     renderCoachStrip();
     renderAnalysis();
@@ -1059,55 +1144,62 @@ details.why[open] summary::before { content: "▾ "; }
   }
 
   function renderSeat(p) {
-    const s = seatEls[p.id];
-    const res = game.results;
-    const isTurn = game.phase === 'betting' && game.toAct === p.id && !ui.dealing && !ui.squeezing;
+    const el = plates[p.id];
+    if (!el) return;
+    const res = ui.shuffling ? null : game.results;
+    const isTurn = game.phase === 'betting' && game.toAct === p.id && !ui.busy && !ui.squeezing && !ui.shuffling;
     const winner = ui.resultsShown && res && res.pots.some((pt) => pt.winners.includes(p.id));
-    s.root.classList.toggle('turn', isTurn);
-    s.root.classList.toggle('folded', p.folded && !p.out);
-    s.root.classList.toggle('win', !!winner);
-    s.stack.textContent = fmt(p.stack - (ui.hidePayout ? wonBy(p.id) : 0));
-    syncCards(p);
+    el.classList.toggle('turn', isTurn);
+    el.classList.toggle('folded', p.folded && !p.out && game.phase !== 'idle' && !ui.shuffling);
+    el.classList.toggle('win', !!winner);
+    el.querySelector('.pl-stack').textContent = fmt(p.stack - (ui.hidePayout ? wonBy(p.id) : 0));
 
     let showing = '';
-    if (ui.revealed.has(p.id) && res && res.hands) showing = res.hands[p.id];
+    if (ui.shuffling) showing = '';
+    else if (ui.revealed.has(p.id) && res && res.hands) showing = res.hands[p.id];
     else if (!p.folded) {
       const known = knownCards(p);
-      if (known.length) showing = (p.human ? '' : 'Ngửa: ') + X.describe(known);
-      else if (p.human && p.cards.length && !ui.holeSeen) showing = '';
+      if (known.length && (p.human || X.classify(known).cat > 0)) showing = X.describe(known);
+      if (p.human && p.cards.length && ui.dealt.has(keyOf(p.cards[0])) && !ui.toSqueeze.has(keyOf(p.cards[0]))) {
+        showing = ui.holeSeen ? `${showing} · úp ${X.cardLabel(p.cards[0])}` : 'Giữ lá úp để xem';
+      }
+      if (!stage) showing += ' [' + p.cards.map((c, k) => (k === 0 && !p.human && !ui.revealed.has(p.id) ? '?' : X.cardLabel(c))).join(' ') + ']';
     }
     const tags = [];
     if (p.out) tags.push('<span class="tag">Hết chip</span>');
     else if (isTurn && !p.human) tags.push('<span class="tag thinking">Đang nghĩ…</span>');
-    else if (p.lastAction) tags.push(`<span class="tag act-${p.lastAction.split(' ')[0]}">${p.lastAction}</span>`);
-    if (p.bet > 0 && game.phase !== 'done') tags.push(`<span class="chipbet" title="Cược vòng này">${fmt(p.bet)}</span>`);
+    else if (p.lastAction && !ui.shuffling && !(ui.resultsShown && !p.folded)) tags.push(`<span class="tag act-${p.lastAction.split(' ')[0]}">${p.lastAction}</span>`);
     if (ui.resultsShown && res && res.net[p.id] !== undefined) {
       const n = res.net[p.id];
       if (winner) tags.unshift('<span class="tag win">Ăn hũ</span>');
       tags.push(`<span class="net ${n > 0 ? 'plus' : n < 0 ? 'minus' : ''}">${n > 0 ? '+' : ''}${fmt(n)}</span>`);
     }
-    s.foot.innerHTML = (showing ? `<span class="showing">${showing}</span>` : '') + tags.join('');
+    el.querySelector('.pl-sub').innerHTML = (showing ? `<span class="showing">${showing}</span>` : '') + tags.join('');
+    const bl = betLabs[p.id];
+    if (bl) { const show = p.bet > 0 && game.phase === 'betting' && !ui.shuffling; bl.hidden = !show; if (show) bl.textContent = fmt(p.bet); }
   }
 
+  // Lời dealer, hiện trong bong bóng trước ngực dealer
   function message() {
     const me = game.players[0];
+    if (ui.shuffling) return game.handNo ? 'Thu bài, xào bài.' : 'Kính chào quý khách. Xào bài.';
     if (game.phase === 'done') {
-      if (!ui.resultsShown) return game.results.byFold ? 'Không ai theo…' : 'Lật bài so…';
+      if (!ui.resultsShown) return game.results.byFold ? 'Không ai theo.' : 'Mời lật bài.';
       const pts = game.results.pots;
       const w = game.players[pts[pts.length - 1].winners[0]];
-      const tail = me.stack <= 0 ? ' Bạn đã hết chip.' : '';
-      return (game.results.byFold ? `${w.name} ăn hũ vì không ai theo.` : `${w.name} thắng với ${X.describe(w.cards)}.`) + tail;
+      const tail = me.stack <= 0 ? ' Bạn đã hết chip trên bàn.' : '';
+      return (game.results.byFold ? `${w.name} ăn hũ, không ai theo.` : `${w.name} thắng với ${X.describe(w.cards)}.`) + tail;
     }
-    if (ui.squeezing) return 'Đang nặn bài…';
-    if (ui.dealing) return 'Đang chia bài…';
-    if (game.phase === 'between') return game.street >= 5 ? 'Lật bài so…' : isRunout() ? 'Tất tay — chia nốt bài…' : 'Chia thêm một lá ngửa…';
+    if (ui.squeezing) return 'Mời bạn nặn bài.';
+    if (ui.busy) return 'Chia bài.';
+    if (game.phase === 'between') return game.street >= 5 ? 'Mời lật bài.' : isRunout() ? 'Tất tay. Chia nốt bài.' : 'Gom cược. Chia lá tiếp theo.';
     if (game.phase === 'betting') {
       const p = game.players[game.toAct];
       if (p.human) {
         const L = game.legal(0);
-        return L.toCall > 0 ? `Tới lượt bạn: cần ${fmt(L.callAmt)} để theo.` : 'Tới lượt bạn: xem hoặc tố.';
+        return L.toCall > 0 ? `Mời bạn: cần ${fmt(L.callAmt)} để theo.` : 'Mời bạn: xem hoặc tố.';
       }
-      return `${p.name} đang cân nhắc…`;
+      return `Mời ${p.name}.`;
     }
     return '';
   }
@@ -1115,12 +1207,19 @@ details.why[open] summary::before { content: "▾ "; }
   function renderActions() {
     const el = $('actions');
     const me = game.players[0];
-    if (game.phase === 'done' && ui.resultsShown || game.phase === 'idle') {
+    if (game.phase === 'done' && ui.resultsShown && !ui.shuffling) {
       if (me.stack <= 0) {
         el.dataset.sig = 'rebuy';
-        el.innerHTML = `<div class="result-row"><p>Hết chip. Nạp lại để chơi tiếp, thống kê vẫn giữ.</p>
-          <button class="btn gold" id="btnRebuy" type="button">Nạp lại ${fmt(cfg.stack)}</button></div>`;
-        $('btnRebuy').onclick = () => { me.stack = cfg.stack; game.emit(`Bạn nạp lại ${fmt(cfg.stack)} chip`); startHand(); };
+        const can = bank >= room.buyIn;
+        el.innerHTML = `<div class="result-row"><p>${can ? `Hết chip trên bàn. Kho còn ${fmt(bank)}.` : 'Hết chip. Nhận thêm chip luyện tập để chơi tiếp.'}</p>
+          <button class="btn gold" id="btnRebuy" type="button">${can ? `Mang thêm ${fmt(room.buyIn)}` : 'Nhận 2.000 chip'}</button></div>`;
+        $('btnRebuy').onclick = () => {
+          if (bank < room.buyIn) bank += 2000;
+          if (bank >= room.buyIn) { bank -= room.buyIn; me.stack = room.buyIn; store.set('held', me.stack); game.emit(`Bạn mang thêm ${fmt(room.buyIn)} chip vào bàn`); }
+          store.set('bank', bank);
+          el.dataset.sig = '';
+          if (me.stack > 0) startHand(); else render();
+        };
       } else {
         el.dataset.sig = 'result';
         el.innerHTML = `<div class="result-row"><p>${resultText()}</p>
@@ -1132,7 +1231,7 @@ details.why[open] summary::before { content: "▾ "; }
     }
     const myTurn = game.phase === 'betting' && game.toAct === 0 && analysis && !ui.squeezing;
     if (!myTurn) {
-      const label = game.phase === 'done' ? 'Đang lật bài…' : me.folded ? 'Bạn đã úp bỏ' : ui.squeezing ? 'Đang nặn bài' : 'Chờ lượt';
+      const label = ui.shuffling || game.phase === 'idle' ? 'Đang xào bài' : game.phase === 'done' ? 'Đang lật bài…' : me.folded ? 'Bạn đã úp bỏ' : ui.squeezing ? 'Đang nặn bài' : 'Chờ lượt';
       const sig = 'wait:' + label;
       if (el.dataset.sig !== sig) {
         el.dataset.sig = sig;
@@ -1226,7 +1325,7 @@ details.why[open] summary::before { content: "▾ "; }
       return;
     }
     if (!ui.holeSeen) {
-      el.innerHTML = `${feedbackHTML()}<p class="hidden-note">Bạn chưa xem lá úp. Nhấn giữ lá úp (viền vàng nhấp nháy) để hé xem, phân tích sẽ hiện sau đó.</p>`;
+      el.innerHTML = `${feedbackHTML()}<p class="hidden-note">Bạn chưa xem lá úp. Nhấn giữ lá úp trên bàn để nhấc lên xem, phân tích sẽ hiện sau đó.</p>`;
       return;
     }
     const a = analysis;
@@ -1482,9 +1581,6 @@ details.why[open] summary::before { content: "▾ "; }
   /* ---------------- cài đặt ---------------- */
   function syncForm() {
     const f = $('settings');
-    f.players.value = String(cfg.players);
-    f.ante.value = String(cfg.ante);
-    f.stack.value = String(cfg.stack);
     f.rules.value = cfg.rules;
     f.shuffle.value = cfg.shuffle;
     f.squeeze.value = fx.squeeze;
@@ -1509,7 +1605,8 @@ details.why[open] summary::before { content: "▾ "; }
     AppPlugin.addListener('backButton', () => {
       if (!$('squeeze').hidden) { $('sqReveal').click(); return; }
       if (!$('settings').hidden) { toggleSettings(false); return; }
-      if (currentTab !== 'table') { setTab('table'); return; }
+      if (screen === 'table' && currentTab !== 'table') { setTab('table'); return; }
+      if (screen === 'table') { leaveTable(); return; }
       AppPlugin.minimizeApp();
     });
   }
@@ -1518,10 +1615,11 @@ details.why[open] summary::before { content: "▾ "; }
   $('settings').addEventListener('submit', (e) => {
     e.preventDefault();
     const f = e.target;
-    cfg = { players: +f.players.value, ante: +f.ante.value, stack: +f.stack.value, rules: f.rules.value, shuffle: f.shuffle.value };
+    cfg.rules = f.rules.value; cfg.shuffle = f.shuffle.value;
     store.set('cfg', cfg);
     toggleSettings(false);
-    newGame();
+    renderLab();
+    if (game) newGame(game.players[0].stack);
   });
   $('settings').addEventListener('change', (e) => {
     if (e.target.name === 'shuffle') {
@@ -1543,7 +1641,7 @@ details.why[open] summary::before { content: "▾ "; }
     Sound.play('chip');
   };
   reduceMQ.addEventListener && reduceMQ.addEventListener('change', applyFxVars);
-  $('btnNewGame').onclick = newGame;
+  $('btnLobby').onclick = leaveTable;
   $('showHints').checked = store.get('hints', true);
   $('showHints').onchange = (e) => { store.set('hints', e.target.checked); renderAnalysis(); };
 
@@ -1560,6 +1658,7 @@ details.why[open] summary::before { content: "▾ "; }
 
   if (window.XITO_VERSION) $('verNote').textContent = `Phiên bản ${window.XITO_VERSION}, build ngày ${window.XITO_BUILT.split('-').reverse().join('/')} · `;
   applyFxVars();
-  newGame();
+  renderRanks();
+  setScreen('lobby');
 })();
 </script>

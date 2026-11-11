@@ -47,6 +47,11 @@ fs.writeFileSync(path.join(out, 'fonts', 'fonts.css'), fontCss);
 let page = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 page = page.replace(/<link rel="preconnect"[^>]*>\n/g, '');
 page = page.replace(/<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]*>/, '<link rel="stylesheet" href="fonts/fonts.css">');
+// three.js: trang web lấy từ CDN, app đóng gói kèm bản cài sẵn để chạy offline
+fs.mkdirSync(path.join(out, 'vendor'), { recursive: true });
+fs.copyFileSync(path.join(root, 'node_modules', 'three', 'build', 'three.min.js'), path.join(out, 'vendor', 'three.min.js'));
+if (!/cdnjs\.cloudflare\.com\/ajax\/libs\/three\.js/.test(page)) throw new Error('Không thấy thẻ script three.js trong index.html');
+page = page.replace(/https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/three\.js\/r128\/three\.min\.js/, 'vendor/three.min.js');
 const titleMatch = page.match(/<title>[^<]*<\/title>\n?/);
 const title = titleMatch ? titleMatch[0] : '<title>Xì Tố 24</title>\n';
 page = page.replace(title, '').replace(/<meta name="claude:viewport-fit-sides"[^>]*>\n?/, '');
@@ -89,7 +94,7 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !wind
 `;
 fs.writeFileSync(path.join(out, 'index.html'), head + page + '\n</body>\n</html>\n');
 
-for (const f of ['xito-engine.js', 'xito-fx.js', 'xito-sim.js', 'xito-sim-worker.js', 'xito-lab-data.js']) fs.copyFileSync(path.join(root, f), path.join(out, f));
+for (const f of ['xito-engine.js', 'xito-fx.js', 'xito-stage.js', 'xito-sim.js', 'xito-sim-worker.js', 'xito-lab-data.js']) fs.copyFileSync(path.join(root, f), path.join(out, f));
 
 /* ---------- icon + manifest + service worker ---------- */
 fs.cpSync(path.join(root, 'assets', 'icons'), path.join(out, 'icons'), { recursive: true });

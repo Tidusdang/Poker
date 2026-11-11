@@ -29,7 +29,9 @@ Với Apple ID miễn phí, app hết hạn sau 7 ngày, chỉ cần cài lại 
 | File | Nội dung |
 |---|---|
 | `xito-engine.js` | Luật chơi, so bài, chia hũ phụ, xác suất, AI |
-| `xito-fx.js` | Nặn bài, hé lá úp, âm thanh |
+| `xito-fx.js` | Nặn bài, âm thanh |
+| `xito-stage.js` | Bàn chơi 3D (three.js): bàn, dealer, lá bài, chip, máy quay |
+| `xito-sim.js`, `xito-lab-data.js` | Mô phỏng 1 triệu ván và dữ liệu kinh nghiệm |
 | `index.html` | Giao diện (dùng chung cho web, PWA và app) |
 | `scripts/build-web.mjs` | Đóng gói vào `www/` (font offline, manifest, service worker) |
 | `scripts/make-icons.mjs` | Vẽ icon và màn hình khởi động |

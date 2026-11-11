@@ -408,6 +408,7 @@
         case 'deal': this.noise(0.09, 2400, 0.7, 0.55); break;
         case 'flip': this.noise(0.06, 3800, 1.1, 0.45); this.noise(0.05, 1800, 0.9, 0.25, 0.04); break;
         case 'rub': this.noise(0.05, 1500, 0.6, 0.12); break;
+        case 'riffle': for (let i = 0; i < 9; i++) this.noise(0.03, 3000 + i * 150, 1.4, 0.22, i * 0.018); break;
         case 'chip': this.tone(2500, 0.06, 0.09); this.tone(3400, 0.05, 0.06, 'triangle', 0.035); break;
         case 'win': [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.3, 0.06, 'sine', i * 0.08)); break;
         case 'turn': this.tone(880, 0.12, 0.05, 'sine'); break;
