@@ -51,6 +51,11 @@ const titleMatch = page.match(/<title>[^<]*<\/title>\n?/);
 const title = titleMatch ? titleMatch[0] : '<title>Xì Tố 24</title>\n';
 page = page.replace(title, '').replace(/<meta name="claude:viewport-fit-sides"[^>]*>\n?/, '');
 
+// Số phiên bản hiện trong app, khớp với số build trên TestFlight / Android
+const env = process.env;
+const appVersion = env.BUILD_NUMBER ? `1.0 (${env.BUILD_NUMBER})` : env.GITHUB_RUN_NUMBER ? `1.0.${env.GITHUB_RUN_NUMBER}` : 'bản thử';
+const builtAt = new Date().toISOString().slice(0, 10);
+
 const head = `<!doctype html>
 <html lang="vi">
 <head>
@@ -65,6 +70,7 @@ ${title.trim()}
 <meta name="apple-mobile-web-app-title" content="Xì Tố 24">
 <meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="manifest.webmanifest">
+<script>window.XITO_VERSION = ${JSON.stringify(appVersion)}; window.XITO_BUILT = ${JSON.stringify(builtAt)};</script>
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>

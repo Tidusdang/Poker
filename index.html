@@ -492,7 +492,7 @@ details.why[open] summary::before { content: "▾ "; }
     </fieldset>
 
     <div class="row-end">
-      <span class="note">Bạn luôn ngồi ghế dưới cùng.</span>
+      <span class="note"><span id="verNote"></span>Bạn luôn ngồi ghế dưới cùng.</span>
       <button class="btn" type="button" id="btnCloseSettings">Đóng</button>
       <button class="btn gold" type="submit">Bắt đầu lại với cài đặt này</button>
     </div>
@@ -1558,6 +1558,7 @@ details.why[open] summary::before { content: "▾ "; }
     }
   });
 
+  if (window.XITO_VERSION) $('verNote').textContent = `Phiên bản ${window.XITO_VERSION}, build ngày ${window.XITO_BUILT.split('-').reverse().join('/')} · `;
   applyFxVars();
   newGame();
 })();
