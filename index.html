@@ -403,9 +403,9 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
 .stage.nogl .hud { position: static; display: flex; flex-direction: column; gap: 8px; align-items: center; }
 .stage.nogl .hud > * { position: static; transform: none !important; }
 
-/* ---------- Bài trên tay: lá to, nặn tại chỗ ---------- */
+/* ---------- Bài trên tay: lá to để xem ---------- */
 .hand { position: relative; height: 176px; border-radius: 12px; border: 1px solid var(--line); background: radial-gradient(ellipse 90% 120% at 50% 0%, #2c150e 0%, #170c0a 78%); overflow: hidden; }
-.hand canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.hand canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .hand-hint { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font-size: 11.5px; color: #c9b8a4; pointer-events: none; text-shadow: 0 1px 4px #000; }
 .hero-play { position: absolute; right: 14px; bottom: 14px; z-index: 3; height: 48px; padding: 0 22px; border-radius: 12px; font-size: 16px; font-weight: 700; box-shadow: 0 8px 20px #000a; }
 .hero-chip { bottom: auto !important; top: 14px; }
@@ -539,7 +539,7 @@ details.why[open] summary::before { content: "▾ "; }
     <div class="group-h"><h3>Hiệu ứng</h3><span>Áp dụng ngay · máy bật “giảm chuyển động” thì bỏ bay/lật</span></div>
     <fieldset>
       <legend>Nặn bài</legend>
-      <label class="rule-opt"><input type="radio" name="squeeze" id="sqOff" value="off"><span>Tắt<small>Lá úp hiện sẵn trên tay</small></span></label>
+      <label class="rule-opt"><input type="radio" name="squeeze" id="sqOff" value="off"><span>Tắt<small>Lá úp hiện sẵn trong khung bài của bạn</small></span></label>
       <label class="rule-opt"><input type="radio" name="squeeze" id="sqHole" value="hole"><span>Chỉ lá úp</span></label>
       <label class="rule-opt"><input type="radio" name="squeeze" id="sqLast" value="last" checked><span>Lá úp và lá cuối<small>Kèm mọi lá khi tất tay chạy bài</small></span></label>
       <label class="rule-opt"><input type="radio" name="squeeze" id="sqAll" value="all"><span>Mọi lá của bạn</span></label>
@@ -604,7 +604,7 @@ details.why[open] summary::before { content: "▾ "; }
         </div>
       </div>
       <div class="hand" id="hand">
-        <canvas id="handCv" aria-label="Bài trên tay bạn. Kéo từ mép lá úp để nặn."></canvas>
+        <canvas id="handCv" aria-label="Bài trên tay bạn."></canvas>
         <div class="hand-hint" id="handHint"></div>
       </div>
       <div class="dock">
@@ -827,7 +827,8 @@ details.why[open] summary::before { content: "▾ "; }
   const isRunout = () => game.live().filter((q) => !q.allIn).length < 2;
 
   function needsSqueeze(k) {
-    if (fx.squeeze === 'off' || k === 0) return false;   // lá úp nặn trên tay, không chặn ván
+    if (fx.squeeze === 'off') return false;
+    if (k === 0) return true;
     if (fx.squeeze === 'all') return true;
     if (k === 4 && fx.squeeze === 'last') return true;
     return isRunout() && game.phase !== 'betting';
@@ -879,8 +880,8 @@ details.why[open] summary::before { content: "▾ "; }
     cv.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
-  /* ---------------- bài trên tay: lá to, nặn tại chỗ ---------------- */
-  const hand = { cv: $('handCv'), items: [], drag: null, pending: {}, timers: {}, lastTap: 0, lastKey: '' };
+  /* ---------------- bài trên tay: lá to để xem (nặn ở khung lớn giữa màn hình) ---------------- */
+  const hand = { cv: $('handCv'), items: [] };
   const hctx = hand.cv.getContext('2d');
   function faceRR(ctx, x, y, W, H, card) {       // mặt lá bo góc, cùng kiểu chỉ số lớn như lá trên bàn
     ctx.save(); ctx.translate(x, y);
@@ -901,15 +902,13 @@ details.why[open] summary::before { content: "▾ "; }
     if (me && !ui.shuffling) me.cards.forEach((c, k) => {
       const key = keyOf(c);
       if (!ui.dealt.has(key)) return;
-      items.push({ c, k, key, up: ui.revealed.has(0) || (k === 0 ? ui.holeSeen : !ui.toSqueeze.has(key)) });
+      items.push({ c, k, key, up: ui.revealed.has(0) || (!ui.toSqueeze.has(key) && (k > 0 || ui.holeSeen)) });
     });
-    if (hand.drag && !items.some((it) => it.key === hand.drag.it.key && !it.up)) hand.drag = null;
-    if (hand.drag) hand.drag.it = items.find((it) => it.key === hand.drag.it.key);
     hand.items = items;
     let hint = 'Bài của bạn hiện ở đây.';
     if (me && me.folded && game.phase !== 'idle' && !ui.shuffling) hint = 'Bạn đã úp bỏ ván này.';
-    else if (items.some((it) => !it.up && it.k > 0)) hint = 'Kéo từ mép lá vừa chia để nặn · chạm 2 lần để lật ngay';
-    else if (items.some((it) => !it.up)) hint = 'Kéo từ mép lá úp để nặn · chạm 2 lần để lật ngay';
+    else if (items.some((it) => !it.up && ui.toSqueeze.has(it.key))) hint = 'Lá vừa chia đang chờ bạn nặn.';
+    else if (items.some((it) => !it.up)) hint = 'Nhấn giữ lá úp trên bàn để xem.';
     else if (items.length) hint = X.describe(items.map((it) => it.c));
     $('handHint').textContent = hint;
     drawHand();
@@ -921,118 +920,29 @@ details.why[open] summary::before { content: "▾ "; }
     if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
     hctx.setTransform(dpr, 0, 0, dpr, 0, 0); hctx.clearRect(0, 0, W, H);
     const L = handLayout(), me = game && game.players[0];
-    hand.items.forEach((it, i) => { it.x = L.x0 + i * L.sp; it.y = L.y0; });
-    const active = hand.drag && hand.drag.it;
-    const order = hand.items.filter((it) => it !== active).concat(active ? [active] : []);
     hctx.globalAlpha = me && me.folded && game.phase !== 'idle' ? 0.45 : 1;
-    for (const it of order) {
-      if (it === active) { hand.drag.frac = F.drawSqueeze(hctx, { x: it.x, y: it.y }, L.cw, L.ch, it.c, hand.drag.S, hand.drag.P, faceRR); continue; }
+    hand.items.forEach((it, i) => {
+      const x = L.x0 + i * L.sp, y = L.y0;
       hctx.save();
       hctx.shadowColor = 'rgba(0,0,0,0.55)'; hctx.shadowBlur = 12; hctx.shadowOffsetY = 4;
-      hctx.fillStyle = '#1b0c09'; hctx.fillRect(it.x + 4, it.y + 6, L.cw - 8, L.ch - 10);
+      hctx.fillStyle = '#1b0c09'; hctx.fillRect(x + 4, y + 6, L.cw - 8, L.ch - 10);
       hctx.restore();
-      if (it.up) {
-        faceRR(hctx, it.x, it.y, L.cw, L.ch, it.c);
-        if (it.k === 0 && !ui.revealed.has(0)) {       // nhãn nhỏ: đây là lá úp, đối thủ không thấy
-          hctx.save(); hctx.font = '600 10px "Be Vietnam Pro", sans-serif'; hctx.textAlign = 'center'; hctx.textBaseline = 'middle';
-          const bx = it.x + 6, by = it.y + L.ch * 0.52, bw = 30, bh = 16;
-          hctx.fillStyle = '#7a1d12'; hctx.beginPath(); hctx.moveTo(bx + 8, by); hctx.arcTo(bx + bw, by, bx + bw, by + bh, 8); hctx.arcTo(bx + bw, by + bh, bx, by + bh, 8); hctx.arcTo(bx, by + bh, bx, by, 8); hctx.arcTo(bx, by, bx + bw, by, 8); hctx.closePath(); hctx.fill();
-          hctx.fillStyle = '#f1e7d0'; hctx.fillText('ÚP', bx + bw / 2, by + bh / 2 + 0.5);
-          hctx.restore();
-        }
-      } else {
-        F.drawBack(hctx, it.x, it.y, L.cw, L.ch);
-        hctx.save(); hctx.strokeStyle = '#d2aa55'; hctx.lineWidth = 2; hctx.globalAlpha *= 0.55 + 0.35 * Math.sin(performance.now() / 320);
-        const r = L.cw * 0.1, x = it.x, y = it.y;
-        hctx.beginPath(); hctx.moveTo(x + r, y); hctx.arcTo(x + L.cw, y, x + L.cw, y + L.ch, r); hctx.arcTo(x + L.cw, y + L.ch, x, y + L.ch, r); hctx.arcTo(x, y + L.ch, x, y, r); hctx.arcTo(x, y, x + L.cw, y, r); hctx.closePath(); hctx.stroke();
+      if (!it.up) { F.drawBack(hctx, x, y, L.cw, L.ch); return; }
+      faceRR(hctx, x, y, L.cw, L.ch, it.c);
+      if (it.k === 0 && !ui.revealed.has(0)) {       // nhãn nhỏ: đây là lá úp, đối thủ không thấy
+        hctx.save(); hctx.font = '600 10px "Be Vietnam Pro", sans-serif'; hctx.textAlign = 'center'; hctx.textBaseline = 'middle';
+        const bx = x + 6, by = y + L.ch * 0.52, bw = 30, bh = 16;
+        hctx.fillStyle = '#7a1d12'; hctx.beginPath(); hctx.moveTo(bx + 8, by); hctx.arcTo(bx + bw, by, bx + bw, by + bh, 8); hctx.arcTo(bx + bw, by + bh, bx, by + bh, 8); hctx.arcTo(bx, by + bh, bx, by, 8); hctx.arcTo(bx, by, bx + bw, by, 8); hctx.closePath(); hctx.fill();
+        hctx.fillStyle = '#f1e7d0'; hctx.fillText('ÚP', bx + bw / 2, by + bh / 2 + 0.5);
         hctx.restore();
       }
-    }
+    });
     hctx.globalAlpha = 1;
   }
-  // viền vàng của lá chưa lật nhấp nháy nhẹ
-  setInterval(() => { if (screen === 'table' && !hand.drag && hand.items.some((it) => !it.up) && !reduceMQ.matches) drawHand(); }, 90);
   if (window.ResizeObserver) new ResizeObserver(() => drawHand()).observe(hand.cv);
+  function resetHand() { hand.items = []; drawHand(); }
 
-  const hpt = (e) => { const r = hand.cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
-  function snapEdge(p, it, L) {
-    const q = { x: Math.max(0, Math.min(L.cw, p.x - it.x)), y: Math.max(0, Math.min(L.ch, p.y - it.y)) };
-    const dl = q.x, dr = L.cw - q.x, dt = q.y, db = L.ch - q.y, c = L.cw * 0.26;
-    if (Math.min(dl, dr) < c && Math.min(dt, db) < c) { q.x = dl < dr ? 0 : L.cw; q.y = dt < db ? 0 : L.ch; }
-    else { const m = Math.min(dl, dr, dt, db); if (m === dl) q.x = 0; else if (m === dr) q.x = L.cw; else if (m === dt) q.y = 0; else q.y = L.ch; }
-    return { x: q.x + it.x, y: q.y + it.y };
-  }
-  function revealItem(it) {
-    const d = hand.drag && hand.drag.it === it ? hand.drag : (hand.drag = { it, S: null, P: null, frac: 0 });
-    const L = handLayout();
-    if (!d.S) { d.S = { x: it.x + L.cw / 2, y: it.y + L.ch }; d.P = { ...d.S }; }
-    let vx = d.P.x - d.S.x, vy = d.P.y - d.S.y;
-    if (Math.hypot(vx, vy) < 4) { vx = it.x + L.cw / 2 - d.S.x; vy = it.y + L.ch / 2 - d.S.y; }
-    const n = Math.hypot(vx, vy) || 1; vx /= n; vy /= n;
-    const far = Math.max(...[[it.x, it.y], [it.x + L.cw, it.y], [it.x + L.cw, it.y + L.ch], [it.x, it.y + L.ch]].map(([cx, cy]) => (cx - d.S.x) * vx + (cy - d.S.y) * vy));
-    const P0 = { ...d.P }, T = { x: d.S.x + vx * (2 * far + 14), y: d.S.y + vy * (2 * far + 14) };
-    d.done = true;
-    Sound.play('flip'); haptic('heavy');
-    F.tween(260 * motion(), (u) => { if (hand.drag !== d) return; d.P = { x: P0.x + (T.x - P0.x) * u, y: P0.y + (T.y - P0.y) * u }; drawHand(); }).then(() => {
-      if (hand.drag === d) hand.drag = null;
-      if (it.k === 0) ui.holeSeen = true;
-      else {
-        ui.toSqueeze.delete(it.key);
-        clearTimeout(hand.timers[it.key]);
-        const res = hand.pending[it.key]; delete hand.pending[it.key];
-        if (res) res();
-      }
-      if (game) render();
-    });
-  }
-  function springBack(d) {
-    const P0 = { ...d.P };
-    F.tween(180 * motion(), (u) => { if (hand.drag !== d) return; d.P = { x: P0.x + (d.S.x - P0.x) * u, y: P0.y + (d.S.y - P0.y) * u }; drawHand(); })
-      .then(() => { if (hand.drag === d) { hand.drag = null; drawHand(); } });
-  }
-  hand.cv.addEventListener('pointerdown', (e) => {
-    if (!game || e.button > 0 || (hand.drag && hand.drag.done)) return;
-    const me = game.players[0];
-    if (me.folded) return;
-    const p = hpt(e), L = handLayout();
-    let it = null;
-    for (let i = hand.items.length - 1; i >= 0 && !it; i--) { const c = hand.items[i]; if (p.x >= c.x && p.x <= c.x + L.cw && p.y >= c.y && p.y <= c.y + L.ch) { if (c.up) return; it = c; } }
-    if (!it) return;
-    e.preventDefault();
-    try { hand.cv.setPointerCapture(e.pointerId); } catch (_) {}
-    const S0 = snapEdge(p, it, L);
-    hand.drag = { it, S: S0, P: { ...S0 }, frac: 0, moved: false, down: p };
-    drawHand();
-  });
-  hand.cv.addEventListener('pointermove', (e) => {
-    const d = hand.drag; if (!d || d.done || !d.down) return;
-    const p = hpt(e);
-    if (Math.hypot(p.x - d.down.x, p.y - d.down.y) > 6) d.moved = true;
-    d.P = p;
-    if (Math.random() < 0.05) Sound.play('rub');
-    drawHand();
-  });
-  const handUp = () => {
-    const d = hand.drag; if (!d || d.done || !d.down) return;
-    d.down = null;
-    if (!d.moved) {
-      const now = performance.now();
-      if (now - hand.lastTap < 450 && hand.lastKey === d.it.key) { hand.lastTap = 0; revealItem(d.it); return; }
-      hand.lastTap = now; hand.lastKey = d.it.key;
-      springBack(d); return;
-    }
-    if (d.frac > 0.42) revealItem(d.it); else springBack(d);
-  };
-  hand.cv.addEventListener('pointerup', handUp);
-  hand.cv.addEventListener('pointercancel', handUp);
-  hand.cv.addEventListener('contextmenu', (e) => e.preventDefault());
-  function resetHand() {
-    for (const k in hand.timers) clearTimeout(hand.timers[k]);
-    hand.timers = {}; hand.pending = {}; hand.drag = null; hand.items = [];
-    drawHand();
-  }
-
-  /* ---------------- nặn lá vừa chia: ván chờ bạn lật (tự lật sau ít giây) ---------------- */
+  /* ---------------- nặn bài: lá mở to giữa màn hình, kéo từ mép để nặn ---------------- */
   async function runSqueezes(gid) {
     const me = game.players[0];
     for (const key of [...ui.toSqueeze]) {
@@ -1041,14 +951,20 @@ details.why[open] summary::before { content: "▾ "; }
       const k = me.cards.indexOf(c);
       if (k < 0 || !ui.dealt.has(key)) continue;
       ui.squeezing = true; render();
-      await new Promise((res) => {
-        hand.pending[key] = res;
-        hand.timers[key] = setTimeout(() => { const it = hand.items.find((x) => x.key === key && !x.up); if (it && !(hand.drag && hand.drag.done)) revealItem(it); else if (!it) { delete hand.pending[key]; ui.toSqueeze.delete(key); res(); } }, 9000 * pace());
+      const title = k === 0 ? 'Lá úp của bạn' : k === 4 ? 'Lá thứ 5 — lá cuối' : `Lá thứ ${k + 1}`;
+      $('sqEyebrow').textContent = isRunout() && k > 0 ? 'Tất tay · nặn bài' : 'Nặn bài';
+      await F.squeeze(c, {
+        overlay: $('squeeze'), canvas: $('sqCanvas'), title, titleEl: $('sqTitle'),
+        timerEl: $('sqTimer'), revealBtn: $('sqReveal'), motion,
+        autoMs: () => 9000 * pace(),
+        onSound: (s) => { Sound.play(s); if (s === 'flip') haptic('heavy'); },
       });
       if (gid !== gameId) return;
+      ui.toSqueeze.delete(key);
+      if (k === 0) ui.holeSeen = true;
       ui.squeezing = false;
       render();
-      await S.flip(0, k, true, false);
+      if (k > 0) await S.flip(0, k, true, false);
     }
   }
 
@@ -1339,7 +1255,7 @@ details.why[open] summary::before { content: "▾ "; }
       const known = knownCards(p);
       if (known.length && (p.human || X.classify(known).cat > 0)) showing = X.describe(known);
       if (p.human && p.cards.length && ui.dealt.has(keyOf(p.cards[0])) && !ui.toSqueeze.has(keyOf(p.cards[0]))) {
-        showing = ui.holeSeen ? showing : 'Nặn lá úp ở khung bên dưới';
+        showing = ui.holeSeen ? showing : 'Giữ lá úp để xem';
       }
       if (!stage) showing += ' [' + p.cards.map((c, k) => (k === 0 && !p.human && !ui.revealed.has(p.id) ? '?' : X.cardLabel(c))).join(' ') + ']';
     }
@@ -1368,7 +1284,7 @@ details.why[open] summary::before { content: "▾ "; }
       const tail = me.stack <= 0 ? ' Bạn đã hết chip trên bàn.' : '';
       return (game.results.byFold ? `${w.name} ăn hũ, không ai theo.` : `${w.name} thắng với ${X.describe(w.cards)}.`) + tail;
     }
-    if (ui.squeezing) return 'Mời bạn nặn lá vừa chia.';
+    if (ui.squeezing) return 'Mời bạn nặn bài.';
     if (ui.busy) return 'Chia bài.';
     if (game.phase === 'between') return game.street >= 5 ? 'Mời lật bài.' : isRunout() ? 'Tất tay. Chia nốt bài.' : 'Gom cược. Chia lá tiếp theo.';
     if (game.phase === 'betting') {
@@ -1467,7 +1383,7 @@ details.why[open] summary::before { content: "▾ "; }
   function renderCoachStrip() {
     const el = $('coachStrip');
     let h = '';
-    if (analysis && !ui.holeSeen) h = 'Nặn lá úp ở khung phía trên để xem phân tích.';
+    if (analysis && !ui.holeSeen) h = 'Nhấn giữ lá úp trên bàn để xem bài.';
     else if (analysis && $('showHints').checked) {
       const a = analysis;
       h = `Thắng <span class="n">${X.pct(a.equity)}</span>` + (a.toCall ? ` · cần <span class="n">${X.pct(a.potOdds)}</span>` : '') +
@@ -1503,7 +1419,7 @@ details.why[open] summary::before { content: "▾ "; }
       return;
     }
     if (!ui.holeSeen) {
-      el.innerHTML = `${feedbackHTML()}<p class="hidden-note">Bạn chưa xem lá úp. Kéo từ mép lá úp trong khung bài của bạn để nặn, phân tích sẽ hiện sau đó.</p>`;
+      el.innerHTML = `${feedbackHTML()}<p class="hidden-note">Bạn chưa xem lá úp. Nhấn giữ lá úp trên bàn để nhấc lên xem, phân tích sẽ hiện sau đó.</p>`;
       return;
     }
     const a = analysis;
