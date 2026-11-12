@@ -435,14 +435,45 @@
     const dealer = buildFigure({ x: 0, z: -(RW + 0.42), k: 1.35, reach: 0.62, handX: 0.62, coat: 0x17110f, shirt: 0xefe6d6, sleeve: 0xefe6d6, hair: 0x130c0a, glove: true, dealer: true });
     /* Dealer ảnh người thật: hai tấm cắt nền luôn quay mặt về máy quay.
      * Tấm chụp từ trên dùng cho góc nhìn bàn chơi, tấm chính diện dùng cho góc nhìn sảnh; đổi góc thì hòa dần sang nhau. */
-    const photo = { on: false, top: null, front: null, kick: -1e9 };
+    /* Cử động cho ảnh tĩnh, kiểu rối bóng: tấm ảnh là một lưới điểm; vùng quanh bàn tay và vùng quanh đầu được kéo nhẹ
+     * theo từng động tác (đẩy chip, quăng bài, gõ bàn, cúi nhìn bài), phần còn lại của ảnh đứng yên. */
+    function makeRig(mesh, W, H, parts) {
+      const pos = mesh.geometry.attributes.position, n = pos.count, base = new Float32Array(pos.array);
+      const w = parts.map((pt) => {
+        const a = new Float32Array(n);
+        for (let i = 0; i < n; i++) {
+          const k = clamp01(1 - Math.hypot((base[i * 3] + 0.5 - pt.u) * W, (base[i * 3 + 1] + 0.5 - pt.v) * H) / pt.r);
+          a[i] = k * k * (3 - 2 * k);
+        }
+        return a;
+      });
+      return { base, w, W, H, off: parts.map(() => [0, 0]), moved: false };
+    }
+    function applyRig(mesh, rig) {
+      let any = false;
+      for (const o of rig.off) if (o[0] || o[1]) any = true;
+      if (!any && !rig.moved) return;
+      const pos = mesh.geometry.attributes.position, arr = pos.array, b = rig.base;
+      for (let i = 0, n = pos.count; i < n; i++) {
+        let x = b[i * 3], y = b[i * 3 + 1];
+        for (let k = 0; k < rig.w.length; k++) { const wk = rig.w[k][i]; if (wk) { x += wk * rig.off[k][0] / rig.W; y += wk * rig.off[k][1] / rig.H; } }
+        arr[i * 3] = x; arr[i * 3 + 1] = y;
+      }
+      pos.needsUpdate = true; rig.moved = any;
+    }
+    const pushEnv = (u) => (u < 0.3 ? 1 - Math.pow(1 - u / 0.3, 3) : u < 0.45 ? 1 : 1 - easeIO((u - 0.45) / 0.55));   // đưa tay ra nhanh, giữ một nhịp, thu về
+    const gv = new V3();
+
+    const photo = { on: false, top: null, front: null, kick: -1e9, g: null };
     const PH_TOP = 3.55, PH_FRONT = 3.85, photoAnchor = new V3(0, 0.2, -(TW + 0.16));
     if (opts.dealerPhotos) {
       const loader = new THREE.TextureLoader();
       ['top', 'front'].forEach((k) => loader.load(opts.dealerPhotos[k], (tex) => {
         tex.encoding = THREE.sRGBEncoding; tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-        const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.05, color: 0xe9ddcf }));
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 12, 20), new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.05, color: 0xe9ddcf }));
         m.userData.asp = tex.image.width / tex.image.height; m.visible = false; m.renderOrder = 2;
+        // ảnh góc cao: bàn tay phải của dealer (bên trái ảnh) chia bài, bàn tay trái, và đầu
+        if (k === 'top') m.userData.rig = makeRig(m, PH_TOP * m.userData.asp, PH_TOP, [{ u: 0.36, v: 0.09, r: 0.6 }, { u: 0.6, v: 0.09, r: 0.6 }, { u: 0.5, v: 0.78, r: 0.85 }]);
         scene.add(m); photo[k] = m; lastW = 0;
       }, undefined, () => {}));
     }
@@ -459,23 +490,25 @@
     /* Người chơi ảnh thật: mỗi ghế một tấm cắt nền chụp đúng hướng ngồi (ghế góc bàn: nghiêng 3/4; ghế đầu bàn: nhìn ngang).
      * h = chiều cao tấm ảnh trong cảnh; (px, py) = điểm "bàn tay" trong ảnh, tính từ góc dưới trái — điểm này được đặt lên mép bàn. */
     const PEOPLE = {
-      A: { h: 2.5, px: 0.88, py: 0.05 },
-      B: { h: 2.6, px: 0.37, py: 0.09 },
-      C: { h: 2.6, px: 0.9, py: 0.22 },
+      A: { h: 2.5, px: 0.88, py: 0.05, grip: [0.87, 0.07], head: [0.47, 0.77], face: 1 },     // face: 1 = quay mặt về bên phải khung hình
+      B: { h: 2.6, px: 0.37, py: 0.09, grip: [0.36, 0.1], head: [0.58, 0.81], face: -1 },
+      C: { h: 2.45, px: 0.9, py: 0.22, grip: [0.89, 0.3], head: [0.38, 0.81], face: 1 },
     };
     const pTex = {};
     if (opts.playerPhotos) {
       const loader = new THREE.TextureLoader();
       Object.keys(opts.playerPhotos).forEach((k) => loader.load(opts.playerPhotos[k], (tex) => {
         tex.encoding = THREE.sRGBEncoding; tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-        pTex[k] = tex;
+        pTex[k] = tex; lastW = 0;
         for (const st of seats) if (st.key === k && !st.ph) st.ph = makePhoto(k);
       }, undefined, () => {}));
     }
     function makePhoto(k) {
       if (!pTex[k] || !PEOPLE[k]) return null;
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: pTex[k], transparent: true, alphaTest: 0.05, color: 0xe9ddcf }));
-      m.userData.asp = pTex[k].image.width / pTex[k].image.height; m.userData.cfg = PEOPLE[k]; m.userData.ph = Math.random() * 6.28;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 14, 18), new THREE.MeshBasicMaterial({ map: pTex[k], transparent: true, alphaTest: 0.05, color: 0xe9ddcf }));
+      const c = PEOPLE[k];
+      m.userData.asp = pTex[k].image.width / pTex[k].image.height; m.userData.cfg = c; m.userData.ph = Math.random() * 6.28;
+      m.userData.rig = makeRig(m, c.h * m.userData.asp, c.h, [{ u: c.grip[0], v: c.grip[1], r: 1.0 }, { u: c.head[0], v: c.head[1], r: 0.7 }]);
       m.visible = false; m.renderOrder = 2; scene.add(m);
       return m;
     }
@@ -512,18 +545,46 @@
         if (!st.ph) continue;
         st.ph.visible = show;
         if (!show) continue;
-        const m = st.ph, c = m.userData.cfg, ph = m.userData.ph;
+        const m = st.ph, c = m.userData.cfg, ph = m.userData.ph, rig = m.userData.rig;
+        // động tác đang diễn: e = mức đưa tay ra (tố, theo, úp bài), tap = gõ bàn (xem), flick = hất nhẹ khi quăng bài
+        let e = 0, tap = 0, flick = 0;
+        if (st.g) {
+          const u = (now - st.g.t0) / st.g.dur;
+          if (u >= 1) st.g = null;
+          else if (st.g.kind === 'check') tap = Math.pow(Math.sin(u * Math.PI * 2), 2);
+          else { e = pushEnv(u); if (st.g.kind === 'fold') flick = Math.sin(Math.min(1, u / 0.45) * Math.PI); }
+        }
         const H = c.h * (1 + Math.sin(t * 1.1 + ph) * 0.004), W = c.h * m.userData.asp;
-        swayQ.setFromAxisAngle(Z1, (Math.sin(t * 0.41 + ph) * 0.007 + Math.sin(t * 0.77 + ph * 2) * 0.003) * mv);
+        // người hơi ngả về phía bàn khi đưa tay ra
+        swayQ.setFromAxisAngle(Z1, (Math.sin(t * 0.41 + ph) * 0.007 + Math.sin(t * 0.77 + ph * 2) * 0.003) * mv - c.face * 0.035 * e);
         camUp.set(0, 1, 0).applyQuaternion(swayQ).applyQuaternion(camera.quaternion);
         camRt.set(1, 0, 0).applyQuaternion(swayQ).applyQuaternion(camera.quaternion);
         m.quaternion.copy(camera.quaternion).multiply(swayQ);
         m.scale.set(W, H, 1);
         m.position.copy(st.hand).addScaledVector(camRt, (0.5 - c.px) * W).addScaledVector(camUp, (0.5 - c.py) * H);
-        // bỏ bài thì tối đi; đến lượt thì sáng lên một chút
+        // bàn tay: đẩy về phía chip hoặc chồng bài bỏ; gõ bàn khi xem
+        if (e && st.g) { gv.copy(st.g.d).multiplyScalar((st.g.kind === 'fold' ? 0.36 : 0.32) * e); rig.off[0][0] = gv.dot(camRt); rig.off[0][1] = gv.dot(camUp) + flick * 0.07; }
+        else { rig.off[0][0] = 0; rig.off[0][1] = -tap * 0.07; }
+        // đầu: nhúc nhích rất nhẹ; đến lượt mình thì cúi xuống nhìn bài
+        st.think = lerp(st.think || 0, seats[turnSeat] === st ? 1 : 0, 0.05);
+        rig.off[1][0] = (Math.sin(t * 0.53 + ph) * 0.014 + c.face * (st.think * 0.02 + e * 0.02)) * mv;
+        rig.off[1][1] = (Math.sin(t * 0.37 + ph * 1.7) * 0.011 - st.think * 0.035 - e * 0.02) * mv;
+        applyRig(m, rig);
+        // bỏ bài thì tối đi
         st.dim = lerp(st.dim || 0, st.out ? 1 : 0, 0.1);
         m.material.color.setHex(0xe9ddcf).lerp(dimC.setHex(0x4a423c), st.dim * 0.8);
       }
+    }
+    function gesture(st, kind, target) {
+      if (!st || !st.hand || motion() <= 0) return;
+      const d = target ? new V3(target.x - st.hand.x, 0, target.z - st.hand.z).normalize() : new V3();
+      st.g = { kind, t0: performance.now(), dur: (kind === 'check' ? 460 : kind === 'fold' ? 640 : 740) * Math.max(motion(), 0.4), d };
+    }
+    // dealer: tay phải (bên trái ảnh) vẩy bài về phía người nhận; hai tay đẩy/gom chip
+    function dealerGesture(kind, target) {
+      if (motion() <= 0) return;
+      const d = new V3(target.x - (kind === 'deal' ? -0.3 : 0), 0, target.z - photoAnchor.z).normalize();
+      photo.g = { kind, t0: performance.now(), dur: (kind === 'deal' ? 300 : 760) * Math.max(motion(), 0.4), d };
     }
     function updatePhoto(now) {
       updatePlayers(now);
@@ -549,6 +610,22 @@
         m.scale.set(H * m.userData.asp, H, 1);
         m.position.copy(photoAnchor).addScaledVector(camUp, H / 2 - kick);
       });
+      const rig = photo.top.userData.rig;
+      if (rig) {
+        let e = 0;
+        if (photo.g) {
+          const u = (now - photo.g.t0) / photo.g.dur;
+          if (u >= 1) photo.g = null; else e = photo.g.kind === 'deal' ? Math.sin(u * Math.PI) : pushEnv(u);
+        }
+        camRt.set(1, 0, 0).applyQuaternion(swayQ).applyQuaternion(camera.quaternion);
+        if (e) { gv.copy(photo.g.d).multiplyScalar((photo.g.kind === 'deal' ? 0.3 : 0.34) * e); }
+        const gx = e ? gv.dot(camRt) : 0, gy = e ? gv.dot(camUp) : 0, both = e && photo.g.kind !== 'deal';
+        rig.off[0][0] = gx; rig.off[0][1] = gy;
+        rig.off[1][0] = both ? gx : 0; rig.off[1][1] = both ? gy : 0;
+        const mv = Math.min(1, Math.max(motion(), 0));
+        rig.off[2][0] = Math.sin(t * 0.49) * 0.014 * mv + gx * 0.08; rig.off[2][1] = Math.sin(t * 0.33 + 1) * 0.01 * mv;
+        applyRig(photo.top, rig);
+      }
     }
 
     // mỗi ghế một nhân vật cố định: C = Anh Ba, A = Chị Tư, B = Bác Sáu
@@ -596,8 +673,8 @@
       return { cx: side * 2.4, cz: -1.05, sp: 0.3, k: 1.2, bet: [side * 1.15, -0.15], lab: [0, 0.74], edge: hand, plate: arc(side, RW - 0.62, PHI - 0.16), plateY: 0.02, hand,
         fig: [...arc(side, RW + 0.55, PHI), -side * (Math.PI / 2 - PHI)], tub: [...arc(side, RW + 0.92, PHI), -side * (Math.PI / 2 - PHI)] };
     };
-    const end = (side) => ({ cx: side * 2.65, cz: 0.4, sp: 0.3, k: 1.2, bet: [side * 2.3, 1.25], lab: [-side * 0.1, 0.72], edge: [side * 4.05, 0.35], plate: [side * 4.05, 0.35], hand: [side * (RL - 0.2), 0.35],
-      fig: [side * (RL + 0.55), 0.35, -side * Math.PI / 2], tub: [side * (RL + 0.78), 0.35, -side * Math.PI / 2] });
+    const end = (side) => ({ cx: side * 2.65, cz: 0.4, sp: 0.3, k: 1.2, bet: [side * 2.3, 1.25], lab: [-side * 0.1, 0.72], edge: [side * 4.05, 0.35], plate: [side * 4.7, 1.1], plateY: -0.9, hand: [side * (RL - 0.45), 0.35],
+      fig: [side * (RL + 0.55), 0.35, -side * Math.PI / 2], tub: [side * (RL + 0.55), 0.35, -side * Math.PI / 2] });
     const SLOT = {
       me: { cx: 0, cz: 1.5, sp: 0.66, k: 1.2, bet: [0, 0.38], lab: [0.78, 0.15], edge: [0, 2.9] },
       C: end(-1), A: corner(-1), B: corner(1), D: end(1),
@@ -637,7 +714,15 @@
       const pts = [[RL, 0.15, 0.7], [-RL, 0.15, 0.7], [RL, 0.15, -0.7], [-RL, 0.15, -0.7], [0, 0.1, RW + 0.1], [2.1, 0.1, RW - 0.05], [-2.1, 0.1, RW - 0.05]];
       // đỉnh đầu dealer: nhân vật 3D, hoặc mép trên tấm ảnh (tấm ảnh vuông góc với hướng nhìn)
       if (photo.on && photo.top) pts.push([0, photoAnchor.y + PH_TOP * Math.cos(el), photoAnchor.z - PH_TOP * Math.sin(el)]); else pts.push([0, 3.95, -(RW + 0.42)]);
-      for (const s of seats) if (s.fig) { const p = s.fig.g.position; if (Math.abs(p.x) < RL) pts.push([p.x, 2.7, p.z]); else pts.push([Math.sign(p.x) * (RL + 1.35), 0.6, p.z]); }
+      for (const s of seats) if (s.fig) {
+        const p = s.fig.g.position, c = PEOPLE[s.key];
+        if (Math.abs(p.x) < RL) pts.push([p.x, 2.7, p.z]);
+        else if (photo.on && c && pTex[s.key]) {
+          // người ngồi đầu bàn: cả lưng lẫn đầu phải nằm trong khung (tấm ảnh nghiêng theo góc máy quay)
+          const W = c.h * pTex[s.key].image.width / pTex[s.key].image.height, sd = Math.sign(p.x), up = 0.45 * c.h;
+          pts.push([s.hand.x + sd * c.px * W, 0.2 + up * Math.cos(el), s.hand.z - up * Math.sin(el)]);
+        } else pts.push([Math.sign(p.x) * (RL + 1.35), 0.6, p.z]);
+      }
       probe.aspect = aspect; probe.fov = camera.fov; probe.updateProjectionMatrix();
       const measure = (d, tz) => {
         probe.position.set(0, 0.3 + Math.sin(el) * d, tz + Math.cos(el) * d); probe.lookAt(0, 0.3, tz); probe.updateMatrixWorld(); probe.matrixWorldInverse.copy(probe.matrixWorld).invert();
@@ -656,8 +741,10 @@
     function poseOf(mode, now, pos, tgt) {
       if (mode === 'lobby') {
         const aspect = (container.clientWidth || 1) / (container.clientHeight || 1);
-        const a = Math.sin(now / 1000 * 0.1) * 0.55, r = aspect < 1 ? 19 : aspect < 1.8 ? 15 : 12.5;
-        tgt.set(0, 1.0, -1.6); pos.set(Math.sin(a) * r, 4.4 + Math.sin(now / 1000 * 0.07) * 0.35, Math.cos(a) * r - 1.6);
+        // khung hẹp (điện thoại): lùi máy quay và lệch tâm về phía ghế đầu bàn để người ngồi đó không bị cắt
+        const narrow = aspect < 1.4, sx = narrow && seats.some((s) => s.key === 'C') ? -0.75 : 0;
+        const a = Math.sin(now / 1000 * 0.1) * (narrow ? 0.4 : 0.55), r = aspect < 1 ? 21 : narrow ? 17.5 : aspect < 1.8 ? 15 : 12.5;
+        tgt.set(sx, 1.0, -1.6); pos.set(sx + Math.sin(a) * r, 4.4 + Math.sin(now / 1000 * 0.07) * 0.35, Math.cos(a) * r - 1.6);
       } else if (mode === 'showdown') { tgt.copy(cam.playTgt); pos.copy(cam.playPos).lerp(tgt, 0.035); }
       else { tgt.copy(cam.playTgt); pos.copy(cam.playPos); }
     }
@@ -730,6 +817,8 @@
       el: canvas,
       setFelt(k) { feltKey = FELTS[k] ? k : 'son'; feltRedraw(); },
       setPeople(style) { photo.on = style === 'photo'; lastW = 0; },
+      // động tác không kèm chip hay bài (ví dụ: gõ bàn khi "xem")
+      act(seat, kind) { gesture(seats[seat], kind, null); },
       setSeats,
       anchor(kind, seat) {
         if (kind === 'pot') return new V3(potPos.x, 0.2, potPos.z + 0.5);
@@ -811,7 +900,7 @@
         const dist = dir.length(); dir.normalize();
         const start = from.clone().addScaledVector(dir, 0.72).setY(0.42);
         c.pos.copy(from); c.flip = 0; c.yaw = Math.atan2(dir.x, dir.z) + Math.PI; applyPose(c); c.g.visible = false;
-        dealer.throwTo(from, to, 300 * Math.max(motion(), 0.2)); photo.kick = performance.now();
+        dealer.throwTo(from, to, 300 * Math.max(motion(), 0.2)); photo.kick = performance.now(); dealerGesture('deal', to);
         const spin = (Math.random() < 0.5 ? -1 : 1) * Math.PI * 2, yEnd = (Math.random() - 0.5) * 0.07, y0 = c.yaw;
         const apex = 0.55 + dist * 0.09;
         return delay(170).then(() => {
@@ -836,7 +925,7 @@
       fold(seat) {
         const mine = cards.filter((c) => c.seat === seat && !c.gone && !c.mucked);
         const s = seats[seat]; if (s && s.fig) s.fig.reach(new V3(s.s.cx, 0, s.s.cz), 520 * motion());
-        if (s) s.out = true;
+        if (s) { s.out = true; gesture(s, 'fold', muck); }
         return Promise.all(mine.map((c, i) => {
           const from = c.pos.clone(), y0 = c.yaw, f0 = c.flip, y1 = (Math.random() - 0.5) * 0.9, k0 = c.g.scale.x;
           const to = muck.clone(); to.x += (Math.random() - 0.5) * 0.16; to.z += (Math.random() - 0.5) * 0.12; to.y = 0.008 + cards.filter((k) => k.mucked).length * 0.003 + i * 0.003;
@@ -883,6 +972,7 @@
         const s = seats[seat]; if (!s) return Promise.resolve();
         const p = newPile(delta, s.edge); sfx('chip');
         if (s.fig) s.fig.reach(s.betPos, 560 * motion());
+        gesture(s, 'bet', s.betPos);
         return slide(p, s.betPos, 380).then(() => {
           scene.remove(p);
           if (!s.pile) s.pile = newPile(total, s.betPos); else fillPile(s.pile, total);
@@ -892,7 +982,7 @@
       collect(pot) {
         const moving = seats.filter((s) => s.pile);
         if (!moving.length) { api.setPot(pot); return Promise.resolve(); }
-        dealer.reach(potPos, 620 * motion()); sfx('chip');
+        dealer.reach(potPos, 620 * motion()); dealerGesture('push', potPos); sfx('chip');
         return Promise.all(moving.map((s) => { const p = s.pile; s.pile = null; return slide(p, potPos, 440).then(() => scene.remove(p)); })).then(() => { api.setPot(pot); sfx('chip'); });
       },
       setPot(amount) {
@@ -902,7 +992,7 @@
       pay(seat, amount, left) {
         const s = seats[seat]; if (!s) return Promise.resolve();
         api.setPot(left);
-        const p = newPile(amount, potPos, true); dealer.reach(potPos, 700 * motion()); sfx('chip');
+        const p = newPile(amount, potPos, true); dealer.reach(potPos, 700 * motion()); dealerGesture('push', potPos); sfx('chip');
         return slide(p, s.edge.clone().lerp(s.betPos, 0.5), 620).then(() => delay(260)).then(() => { scene.remove(p); sfx('chip'); });
       },
 

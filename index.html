@@ -1161,6 +1161,7 @@ details.why[open] summary::before { content: "▾ "; }
     render();
     if (p.folded && !ui.folded.has(p.id)) { ui.folded.add(p.id); await S.fold(p.id); }
     else if (paid > 0) await S.bet(p.id, p.bet, paid);
+    else if (type === 'check') S.act(p.id, 'check');
   }
 
   async function loop(gid = gameId) {
