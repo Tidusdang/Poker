@@ -487,65 +487,64 @@
       m.rotation.x = -Math.PI / 2; m.position.set(0, 0.215, photoAnchor.z + 0.05); m.renderOrder = 1; m.visible = false; scene.add(m);
       return m;
     })();
-    /* Người chơi ảnh thật: mỗi ghế một tấm cắt nền chụp đúng hướng ngồi (ghế góc bàn: nghiêng 3/4; ghế đầu bàn: nhìn ngang).
-     * h = chiều cao tấm ảnh trong cảnh; (px, py) = điểm "bàn tay" trong ảnh, tính từ góc dưới trái — điểm này được đặt lên mép bàn. */
+    /* Người chơi ảnh thật: mỗi ghế một tấm ảnh cắt nền chụp cả người lẫn ghế, đúng hướng ngồi của ghế đó
+     * (ghế góc bàn: nghiêng 3/4; ghế đầu bàn: nhìn ngang). Tấm ảnh luôn quay mặt về máy quay và đi qua điểm bàn tay
+     * chạm mép bàn, nên cái bàn 3D tự che phần chân nằm dưới gầm bàn, còn ghế và phần người ngoài mép bàn vẫn thấy.
+     * Mỗi người có hai lớp ảnh, tách theo viền dưới của cẳng tay và bàn tay: lớp trên (thân, tay) luôn nằm trước cái bàn;
+     * lớp dưới (đùi, chân, ghế) lùi ra sau cái bàn, nên chỗ nào chân trùng với bàn trên màn hình thì bàn che, đúng như ngồi thật.
+     * h = chiều cao tấm ảnh trong cảnh. Các điểm tính từ góc dưới trái ảnh: (px, py) = chỗ bàn tay chạm bàn,
+     * grip = tâm hai bàn tay, head = đầu, chest = ngực, base = đế ghế chạm sàn; cut = lớp trên còn trễ xuống dưới điểm chạm bàn
+     * bao nhiêu (đơn vị cảnh; ghế đầu bàn có ống tay áo trễ xuống nhiều hơn). face: 1 = quay mặt sang phải khung hình. */
     const PEOPLE = {
-      A: { h: 2.5, px: 0.88, py: 0.05, grip: [0.87, 0.07], head: [0.47, 0.77], face: 1 },     // face: 1 = quay mặt về bên phải khung hình
-      B: { h: 2.6, px: 0.37, py: 0.09, grip: [0.36, 0.1], head: [0.58, 0.81], face: -1 },
-      C: { h: 2.45, px: 0.9, py: 0.22, grip: [0.89, 0.3], head: [0.38, 0.81], face: 1 },
+      A: { h: 4.72, px: 0.924, py: 0.499, grip: [0.904, 0.539], head: [0.59, 0.882], chest: [0.56, 0.75], base: [0.349, 0.19], cut: 0.03, face: 1 },
+      B: { h: 4.73, px: 0.23, py: 0.494, grip: [0.23, 0.544], head: [0.491, 0.885], chest: [0.53, 0.75], base: [0.7, 0.2], cut: 0.03, face: -1 },
+      C: { h: 3.81, px: 0.94, py: 0.52, grip: [0.927, 0.584], head: [0.503, 0.878], chest: [0.47, 0.72], base: [0.344, 0.075], cut: 0.16, face: 1 },
     };
-    const pTex = {};
+    const pTex = {}, pTexLow = {};      // lớp trên, lớp dưới
     if (opts.playerPhotos) {
       const loader = new THREE.TextureLoader();
-      Object.keys(opts.playerPhotos).forEach((k) => loader.load(opts.playerPhotos[k], (tex) => {
+      Object.keys(opts.playerPhotos).forEach((k) => [pTex, pTexLow].forEach((store, i) => loader.load(opts.playerPhotos[k][i], (tex) => {
         tex.encoding = THREE.sRGBEncoding; tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-        pTex[k] = tex; lastW = 0;
+        store[k] = tex; lastW = 0;
         for (const st of seats) if (st.key === k && !st.ph) st.ph = makePhoto(k);
-      }, undefined, () => {}));
+      }, undefined, () => {})));
     }
     function makePhoto(k) {
-      if (!pTex[k] || !PEOPLE[k]) return null;
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 14, 18), new THREE.MeshBasicMaterial({ map: pTex[k], transparent: true, alphaTest: 0.05, color: 0xe9ddcf }));
-      const c = PEOPLE[k];
-      m.userData.asp = pTex[k].image.width / pTex[k].image.height; m.userData.cfg = c; m.userData.ph = Math.random() * 6.28;
-      m.userData.rig = makeRig(m, c.h * m.userData.asp, c.h, [{ u: c.grip[0], v: c.grip[1], r: 1.0 }, { u: c.head[0], v: c.head[1], r: 0.7 }]);
-      m.visible = false; m.renderOrder = 2; scene.add(m);
+      if (!pTex[k] || !pTexLow[k] || !PEOPLE[k]) return null;
+      const c = PEOPLE[k], asp = pTex[k].image.width / pTex[k].image.height;
+      const layer = (tex) => new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 16, 24), new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.05, color: 0xe9ddcf }));
+      const m = layer(pTex[k]), low = layer(pTexLow[k]);
+      m.userData.asp = asp; m.userData.cfg = c; m.userData.ph = Math.random() * 6.28; m.userData.low = low;
+      // ba vùng cử động: hai bàn tay, đầu, nửa thân trên (ghế và chân đứng yên); hai lớp dùng chung một bộ để không hở đường tách
+      const parts = [{ u: c.grip[0], v: c.grip[1], r: 1.0 }, { u: c.head[0], v: c.head[1], r: 0.7 }, { u: c.chest[0], v: c.chest[1], r: 1.5 }];
+      m.userData.rig = makeRig(m, c.h * asp, c.h, parts); low.userData.rig = makeRig(low, c.h * asp, c.h, parts);
+      for (const x of [m, low]) { x.visible = false; x.renderOrder = 2; scene.add(x); }
       return m;
     }
-    // ghế bành lưng cong: che phần dưới của tấm ảnh và cho người chơi một chỗ ngồi thật
-    const tubMat = M(0x2a1410, 0.55, { side: THREE.DoubleSide }), tubSeatMat = M(0x3a1d15, 0.7);
-    const arcBand = (r0, r1, half, y0, y1) => {
-      const sh = new THREE.Shape();
-      sh.absarc(0, 0, r1, Math.PI / 2 - half, Math.PI / 2 + half, false);
-      sh.absarc(0, 0, r0, Math.PI / 2 + half, Math.PI / 2 - half, true);
-      const g = new THREE.ExtrudeGeometry(sh, { depth: y1 - y0, bevelEnabled: false, curveSegments: 20 });
-      g.rotateX(-Math.PI / 2); g.translate(0, y0, 0);     // dựng đứng lên; lưng ghế nằm phía −z (sau lưng người ngồi, người ngồi nhìn về +z)
-      return g;
-    };
-    const tubArmGeo = arcBand(0.78, 0.95, 2.2, -1.75, -0.12), tubBackGeo = arcBand(0.78, 0.95, 1.05, -0.12, 0.95);
-    const tubSeatGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.34, 28), tubPostGeo = new THREE.CylinderGeometry(0.12, 0.16, 0.9, 12), tubFootGeo = new THREE.CylinderGeometry(0.62, 0.7, 0.08, 24);
-    function buildTub(x, z, rot) {
-      const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot;
-      const arm = new THREE.Mesh(tubArmGeo, tubMat), back = new THREE.Mesh(tubBackGeo, tubMat);
-      const seat = new THREE.Mesh(tubSeatGeo, tubSeatMat); seat.position.y = -1.17;
-      const post = new THREE.Mesh(tubPostGeo, chairTrim); post.position.y = -2.15;
-      const foot = new THREE.Mesh(tubFootGeo, chairTrim); foot.position.y = -2.56;
-      for (const m of [arm, back, seat]) { m.castShadow = true; m.receiveShadow = true; }
-      g.add(arm, back, seat, post, foot); g.visible = false; scene.add(g);
-      return g;
+    // bóng mờ trên sàn dưới đế ghế: đặt đúng chỗ đế ghế trong ảnh "rơi" xuống sàn theo hướng nhìn, để ghế bám sàn ở mọi góc máy
+    const blobTex = canvasTex(128, 128, (ctx) => { const g = ctx.createRadialGradient(64, 64, 6, 64, 64, 64); g.addColorStop(0, 'rgba(0,0,0,.7)'); g.addColorStop(0.55, 'rgba(0,0,0,.3)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, 128, 128); });
+    function makeShadow() {
+      const m = flat(new THREE.Mesh(new THREE.PlaneGeometry(2.7, 2.1), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false })));
+      m.renderOrder = 1; m.visible = false; scene.add(m);
+      return m;
     }
-    const camUp = new V3(), camRt = new V3(), camFwd = new V3(), swayQ = new THREE.Quaternion(), Z1 = new V3(0, 0, 1), dimC = new THREE.Color();
+    const FLOOR_Y = -2.6;
+    const camUp = new V3(), camRt = new V3(), camFwd = new V3(), pc = new V3(), swayQ = new THREE.Quaternion(), Z1 = new V3(0, 0, 1), dimC = new THREE.Color();
     function updatePlayers(now) {
       const t = now / 1000, mv = Math.min(1, Math.max(motion(), 0));
+      camUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
+      camRt.set(1, 0, 0).applyQuaternion(camera.quaternion);
+      camFwd.set(0, 0, -1).applyQuaternion(camera.quaternion);
+      const sinE = Math.max(0, -camFwd.y), cosE = Math.sqrt(1 - sinE * sinE), tanE = sinE / Math.max(cosE, 0.05);   // góc máy quay chúc xuống
       for (const st of seats) {
         if (!st.fig) continue;
         const show = photo.on && !!st.ph;
         st.fig.g.visible = !show;
-        if (st.tub) st.tub.visible = show;
+        if (st.shadow) st.shadow.visible = show;
         if (!st.ph) continue;
-        st.ph.visible = show;
+        st.ph.visible = st.ph.userData.low.visible = show;
         if (!show) continue;
-        const m = st.ph, c = m.userData.cfg, ph = m.userData.ph, rig = m.userData.rig;
+        const m = st.ph, low = m.userData.low, c = m.userData.cfg, ph = m.userData.ph, rig = m.userData.rig;
         // động tác đang diễn: e = mức đưa tay ra (tố, theo, úp bài), tap = gõ bàn (xem), flick = hất nhẹ khi quăng bài
         let e = 0, tap = 0, flick = 0;
         if (st.g) {
@@ -554,25 +553,39 @@
           else if (st.g.kind === 'check') tap = Math.pow(Math.sin(u * Math.PI * 2), 2);
           else { e = pushEnv(u); if (st.g.kind === 'fold') flick = Math.sin(Math.min(1, u / 0.45) * Math.PI); }
         }
-        const H = c.h * (1 + Math.sin(t * 1.1 + ph) * 0.004), W = c.h * m.userData.asp;
-        // người hơi ngả về phía bàn khi đưa tay ra
-        swayQ.setFromAxisAngle(Z1, (Math.sin(t * 0.41 + ph) * 0.007 + Math.sin(t * 0.77 + ph * 2) * 0.003) * mv - c.face * 0.035 * e);
-        camUp.set(0, 1, 0).applyQuaternion(swayQ).applyQuaternion(camera.quaternion);
-        camRt.set(1, 0, 0).applyQuaternion(swayQ).applyQuaternion(camera.quaternion);
-        m.quaternion.copy(camera.quaternion).multiply(swayQ);
-        m.scale.set(W, H, 1);
-        m.position.copy(st.hand).addScaledVector(camRt, (0.5 - c.px) * W).addScaledVector(camUp, (0.5 - c.py) * H);
+        const H = c.h, W = c.h * m.userData.asp;
+        // vị trí trên màn hình: điểm bàn tay trong ảnh trùng với điểm trên mép bàn
+        pc.copy(st.hand).addScaledVector(camRt, (0.5 - c.px) * W).addScaledVector(camUp, (0.5 - c.py) * H);
+        // độ sâu: trượt từng phần dọc theo tia nhìn (to nhỏ theo đúng tỉ lệ nên hình trên màn hình không đổi)
+        const dz = gv.copy(st.hand).sub(camera.position).dot(camFwd);
+        const kU = 1 - Math.min(0.6, c.cut / Math.max(tanE, 0.3)) / dz, kL = 1 + (1.1 * sinE + 0.5 * cosE) / dz;
+        m.quaternion.copy(camera.quaternion); low.quaternion.copy(camera.quaternion);
+        m.position.copy(camera.position).addScaledVector(gv.copy(pc).sub(camera.position), kU); m.scale.set(W * kU, H * kU, 1);
+        low.position.copy(camera.position).addScaledVector(gv.copy(pc).sub(camera.position), kL); low.scale.set(W * kL, H * kL, 1);
         // bàn tay: đẩy về phía chip hoặc chồng bài bỏ; gõ bàn khi xem
         if (e && st.g) { gv.copy(st.g.d).multiplyScalar((st.g.kind === 'fold' ? 0.36 : 0.32) * e); rig.off[0][0] = gv.dot(camRt); rig.off[0][1] = gv.dot(camUp) + flick * 0.07; }
         else { rig.off[0][0] = 0; rig.off[0][1] = -tap * 0.07; }
         // đầu: nhúc nhích rất nhẹ; đến lượt mình thì cúi xuống nhìn bài
         st.think = lerp(st.think || 0, seats[turnSeat] === st ? 1 : 0, 0.05);
-        rig.off[1][0] = (Math.sin(t * 0.53 + ph) * 0.014 + c.face * (st.think * 0.02 + e * 0.02)) * mv;
-        rig.off[1][1] = (Math.sin(t * 0.37 + ph * 1.7) * 0.011 - st.think * 0.035 - e * 0.02) * mv;
+        rig.off[1][0] = (Math.sin(t * 0.53 + ph) * 0.014 + c.face * st.think * 0.015) * mv;
+        rig.off[1][1] = (Math.sin(t * 0.37 + ph * 1.7) * 0.011 - st.think * 0.03) * mv;
+        // nửa thân trên: thở, và ngả về phía bàn khi đưa tay ra (ghế và chân không nhúc nhích)
+        rig.off[2][0] = (Math.sin(t * 0.41 + ph) * 0.008 + c.face * (e * 0.07 + st.think * 0.02)) * mv;
+        rig.off[2][1] = (Math.sin(t * 1.1 + ph) * 0.008 - e * 0.03 - st.think * 0.012) * mv;
         applyRig(m, rig);
+        const rl = low.userData.rig;
+        for (let i = 0; i < 3; i++) { rl.off[i][0] = rig.off[i][0]; rl.off[i][1] = rig.off[i][1]; }
+        applyRig(low, rl);
         // bỏ bài thì tối đi
         st.dim = lerp(st.dim || 0, st.out ? 1 : 0, 0.1);
-        m.material.color.setHex(0xe9ddcf).lerp(dimC.setHex(0x4a423c), st.dim * 0.8);
+        m.material.color.setHex(0xe9ddcf).lerp(dimC.setHex(0x4a423c), st.dim * 0.8); low.material.color.copy(m.material.color);
+        // bóng dưới đế ghế
+        if (st.shadow) {
+          gv.copy(pc).addScaledVector(camRt, (c.base[0] - 0.5) * W).addScaledVector(camUp, (c.base[1] - 0.5) * H);
+          const k = (FLOOR_Y - camera.position.y) / (gv.y - camera.position.y);
+          st.shadow.position.copy(camera.position).addScaledVector(gv.sub(camera.position), k); st.shadow.position.y = FLOOR_Y + 0.012;
+          st.shadow.scale.setScalar(k);
+        }
       }
     }
     function gesture(st, kind, target) {
@@ -671,10 +684,10 @@
     const corner = (side) => {
       const hand = arc(side, RW - 0.2, PHI);
       return { cx: side * 2.4, cz: -1.05, sp: 0.3, k: 1.2, bet: [side * 1.15, -0.15], lab: [0, 0.74], edge: hand, plate: arc(side, RW - 0.62, PHI - 0.16), plateY: 0.02, hand,
-        fig: [...arc(side, RW + 0.55, PHI), -side * (Math.PI / 2 - PHI)], tub: [...arc(side, RW + 0.92, PHI), -side * (Math.PI / 2 - PHI)] };
+        fig: [...arc(side, RW + 0.55, PHI), -side * (Math.PI / 2 - PHI)] };
     };
-    const end = (side) => ({ cx: side * 2.65, cz: 0.4, sp: 0.3, k: 1.2, bet: [side * 2.3, 1.25], lab: [-side * 0.1, 0.72], edge: [side * 4.05, 0.35], plate: [side * 4.7, 1.1], plateY: -0.9, hand: [side * (RL - 0.45), 0.35],
-      fig: [side * (RL + 0.55), 0.35, -side * Math.PI / 2], tub: [side * (RL + 0.55), 0.35, -side * Math.PI / 2] });
+    const end = (side) => ({ cx: side * 2.65, cz: 0.4, sp: 0.3, k: 1.2, bet: [side * 2.3, 1.25], lab: [-side * 0.1, 0.72], edge: [side * 4.05, 0.35], plate: [side * 4.9, 1.2], plateY: -1.4, hand: [side * 3.6, 0.55],
+      fig: [side * (RL + 0.55), 0.35, -side * Math.PI / 2] });
     const SLOT = {
       me: { cx: 0, cz: 1.5, sp: 0.66, k: 1.2, bet: [0, 0.38], lab: [0.78, 0.15], edge: [0, 2.9] },
       C: end(-1), A: corner(-1), B: corner(1), D: end(1),
@@ -685,13 +698,13 @@
     function setSeats(n) {
       for (const s of seats) {
         if (s.fig) { s.fig.dispose(); figures.splice(figures.indexOf(s.fig), 1); }
-        if (s.ph) { scene.remove(s.ph); s.ph.material.dispose(); }
-        if (s.tub) scene.remove(s.tub);
+        if (s.ph) { scene.remove(s.ph, s.ph.userData.low); s.ph.material.dispose(); s.ph.userData.low.material.dispose(); }
+        if (s.shadow) scene.remove(s.shadow);
       }
       seats = (ORDER[n] || ORDER[4]).map((k) => {
         const s = SLOT[k];
         const fig = s.fig ? buildFigure(Object.assign({ x: s.fig[0], y: -0.75, z: s.fig[1], rot: s.fig[2], k: 1.2, reach: 0.72, handX: 0.36, seated: true }, LOOKS[k] || LOOKS.C)) : null;
-        return { s, key: k, fig, ph: fig ? makePhoto(k) : null, tub: s.tub && PEOPLE[k] ? buildTub(s.tub[0], s.tub[1], s.tub[2]) : null, hand: s.hand ? new V3(s.hand[0], 0.2, s.hand[1]) : null, out: false, dim: 0, betPos: new V3(s.bet[0], 0, s.bet[1]), platePos: s.plate ? new V3(s.plate[0], s.plateY == null ? 0.5 : s.plateY, s.plate[1]) : new V3(0, 0, 2.6), betLab: new V3(s.bet[0] + s.lab[0], 0.2, s.bet[1] + s.lab[1]), edge: new V3(s.edge[0], 0, s.edge[1]), pile: null };
+        return { s, key: k, fig, ph: fig ? makePhoto(k) : null, shadow: fig && PEOPLE[k] ? makeShadow() : null, hand: s.hand ? new V3(s.hand[0], 0.2, s.hand[1]) : null, out: false, dim: 0, betPos: new V3(s.bet[0], 0, s.bet[1]), platePos: s.plate ? new V3(s.plate[0], s.plateY == null ? 0.5 : s.plateY, s.plate[1]) : new V3(0, 0, 2.6), betLab: new V3(s.bet[0] + s.lab[0], 0.2, s.bet[1] + s.lab[1]), edge: new V3(s.edge[0], 0, s.edge[1]), pile: null };
       });
       lastW = 0;
     }
@@ -717,26 +730,35 @@
       for (const s of seats) if (s.fig) {
         const p = s.fig.g.position, c = PEOPLE[s.key];
         if (Math.abs(p.x) < RL) pts.push([p.x, 2.7, p.z]);
-        else if (photo.on && c && pTex[s.key]) {
-          // người ngồi đầu bàn: cả lưng lẫn đầu phải nằm trong khung (tấm ảnh nghiêng theo góc máy quay)
-          const W = c.h * pTex[s.key].image.width / pTex[s.key].image.height, sd = Math.sign(p.x), up = 0.45 * c.h;
-          pts.push([s.hand.x + sd * c.px * W, 0.2 + up * Math.cos(el), s.hand.z - up * Math.sin(el)]);
+        else if (photo.on && c && s.ph) {
+          // người ngồi đầu bàn: lưng ghế (mép ngoài tấm ảnh) phải nằm trong khung
+          const W = c.h * pTex[s.key].image.width / pTex[s.key].image.height, sd = Math.sign(p.x);
+          pts.push([s.hand.x + sd * (sd < 0 ? c.px : 1 - c.px) * W, 0.2, s.hand.z]);
         } else pts.push([Math.sign(p.x) * (RL + 1.35), 0.6, p.z]);
       }
       probe.aspect = aspect; probe.fov = camera.fov; probe.updateProjectionMatrix();
-      const measure = (d, tz) => {
-        probe.position.set(0, 0.3 + Math.sin(el) * d, tz + Math.cos(el) * d); probe.lookAt(0, 0.3, tz); probe.updateMatrixWorld(); probe.matrixWorldInverse.copy(probe.matrixWorld).invert();
-        let mx = 0, top = -9, bot = 9;
-        for (const p of pts) { pv.set(p[0], p[1], p[2]).project(probe); mx = Math.max(mx, Math.abs(pv.x)); top = Math.max(top, pv.y); bot = Math.min(bot, pv.y); }
-        return { mx, top, bot };
+      const L = 0.97;
+      const measure = (d, tz, sx) => {
+        probe.position.set(sx || 0, 0.3 + Math.sin(el) * d, tz + Math.cos(el) * d); probe.lookAt(sx || 0, 0.3, tz); probe.updateMatrixWorld(); probe.matrixWorldInverse.copy(probe.matrixWorld).invert();
+        let x0 = 9, x1 = -9, top = -9, bot = 9;
+        for (const p of pts) { pv.set(p[0], p[1], p[2]).project(probe); x0 = Math.min(x0, pv.x); x1 = Math.max(x1, pv.x); top = Math.max(top, pv.y); bot = Math.min(bot, pv.y); }
+        return { x0, x1, mx: Math.max(-x0, x1), top, bot };
+      };
+      // bố cục lệch (có người ngồi một đầu bàn): lệch máy quay sang phía đó vừa đủ để không ai bị cắt, miễn là đầu bàn bên kia vẫn trong khung
+      const shiftFor = (d, tz) => {
+        const r = measure(d, tz, 0);
+        let sh = 0;
+        if (r.x0 < -L && r.x1 < L) sh = Math.max(r.x0 + L, r.x1 - L); else if (r.x1 > L && r.x0 > -L) sh = Math.min(r.x1 - L, r.x0 + L);
+        if (!sh) return 0;
+        return sh / (pv.set(1, 0.3, tz).project(probe).x - pv.set(0, 0.3, tz).project(probe).x);
       };
       // đặt nội dung cân giữa theo chiều dọc, rồi tìm khoảng cách gần nhất mà vẫn vừa khung
       const panFor = (d) => { let a = -8, b = 8; for (let i = 0; i < 20; i++) { const m = (a + b) / 2, r = measure(d, m); if (r.top + r.bot + topRes - 0.04 > 0) b = m; else a = m; } return (a + b) / 2; };
       let lo = 5, hi = 50;
-      for (let i = 0; i < 20; i++) { const d = (lo + hi) / 2, r = measure(d, panFor(d)); if (r.mx <= 0.97 && r.top <= 0.98 - topRes) hi = d; else lo = d; }
-      const tz = panFor(hi);
-      cam.playTgt.set(0, 0.3, tz);
-      cam.playPos.set(0, 0.3 + Math.sin(el) * hi, tz + Math.cos(el) * hi);
+      for (let i = 0; i < 20; i++) { const d = (lo + hi) / 2, z = panFor(d), r = measure(d, z, shiftFor(d, z)); if (r.mx <= L + 1e-4 && r.top <= 0.98 - topRes) hi = d; else lo = d; }
+      const tz = panFor(hi), sx = shiftFor(hi, tz);
+      cam.playTgt.set(sx, 0.3, tz);
+      cam.playPos.set(sx, 0.3 + Math.sin(el) * hi, tz + Math.cos(el) * hi);
     }
     function poseOf(mode, now, pos, tgt) {
       if (mode === 'lobby') {

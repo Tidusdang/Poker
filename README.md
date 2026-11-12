@@ -32,7 +32,7 @@ Với Apple ID miễn phí, app hết hạn sau 7 ngày, chỉ cần cài lại 
 | `xito-fx.js` | Nặn bài, âm thanh |
 | `xito-stage.js` | Bàn chơi 3D (three.js): bàn, dealer, lá bài, chip, máy quay |
 | `assets/dealer/` | Hai ảnh dealer đã tách nền (góc cao cho bàn chơi, chính diện cho sảnh). Ảnh do AI tạo, không phải người thật |
-| `assets/players/` | Ảnh ba người chơi đã tách nền, mỗi người chụp đúng hướng ngồi của ghế mình (Chị Tư và Bác Sáu ở hai góc bàn, Anh Ba ở đầu bàn). Ảnh do AI tạo, không phải người thật |
+| `assets/players/` | Ảnh ba người chơi ngồi sẵn trên ghế, đã tách nền, mỗi người chụp đúng hướng ngồi của ghế mình (Chị Tư và Bác Sáu ở hai góc bàn, Anh Ba ở đầu bàn). Mỗi người hai lớp: lớp trên bàn (thân, tay) và lớp `-low` dưới gầm bàn (chân, ghế) để cái bàn 3D che đúng chỗ. Ảnh do AI tạo, không phải người thật |
 | `xito-sim.js`, `xito-lab-data.js` | Mô phỏng 1 triệu ván và dữ liệu kinh nghiệm |
 | `index.html` | Giao diện (dùng chung cho web, PWA và app) |
 | `scripts/build-web.mjs` | Đóng gói vào `www/` (font offline, manifest, service worker) |

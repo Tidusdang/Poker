@@ -798,7 +798,7 @@ details.why[open] summary::before { content: "▾ "; }
   let screen = 'lobby';
 
   /* ---------------- bàn 3D ---------------- */
-  const stage = window.XitoStage ? window.XitoStage.create($('stage'), { motion, sound: (k) => Sound.play(k), topInset: 36, dealerPhotos: { top: 'dealer-top.webp', front: 'dealer-front.webp' }, playerPhotos: { A: 'player-chi-tu.webp', B: 'player-bac-sau.webp', C: 'player-anh-ba.webp' } }) : null;
+  const stage = window.XitoStage ? window.XitoStage.create($('stage'), { motion, sound: (k) => Sound.play(k), topInset: 36, dealerPhotos: { top: 'dealer-top.webp', front: 'dealer-front.webp' }, playerPhotos: { A: ['player-chi-tu.webp', 'player-chi-tu-low.webp'], B: ['player-bac-sau.webp', 'player-bac-sau-low.webp'], C: ['player-anh-ba.webp', 'player-anh-ba-low.webp'] } }) : null;
   const noop = () => Promise.resolve();
   const S = stage || new Proxy({}, { get: (_, k) => (k === 'anchor' || k === 'pick' ? () => null : noop) });
   if (!stage) $('stage').classList.add('nogl');
