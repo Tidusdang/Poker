@@ -215,7 +215,7 @@
     const mainLamp = lampAt(0, 7.6, -0.2, 1.25);
 
     // khay chip của dealer
-    const tray = new THREE.Group(); tray.position.set(0.98, 0, -1.9);
+    const tray = new THREE.Group(); tray.position.set(0, 0, -1.84);
     const trayBox = new THREE.Mesh(new THREE.BoxGeometry(1.32, 0.07, 0.56), M(0x120908, 0.4));
     trayBox.position.y = 0.035; trayBox.castShadow = true; tray.add(trayBox);
     scene.add(tray);
@@ -304,7 +304,7 @@
     const cardAt = (seat, idx) => cards.find((c) => c.seat === seat && c.idx === idx && !c.gone);
 
     // cỗ bài trên bàn, chồng bài bỏ
-    const deckPos = new V3(-0.85, 0, -1.82);
+    const deckPos = new V3(-1.1, 0, -1.74);
     const deckMats = [0, 1, 2, 3, 4, 5].map((i) => (i === 2 ? M(0xffffff, 0.5, { map: backTex }) : M(0xe6dcc6, 0.7)));
     const mkDeck = () => { const m = new THREE.Mesh(new THREE.BoxGeometry(CW, 1, CH), deckMats); m.castShadow = true; scene.add(m); return m; };
     const deck = mkDeck(), deck2 = mkDeck(); deck2.visible = false;
@@ -312,7 +312,7 @@
     let deckN = 24;
     function setDeck(n) { deckN = n; deck.visible = n > 0; deck.scale.y = Math.max(0.001, n * DECK_T); deck.position.set(deckPos.x, n * DECK_T / 2, deckPos.z); }
     setDeck(24);
-    const muck = new V3(-0.05, 0.01, -1.75);
+    const muck = new V3(1.3, 0.01, -1.7);
 
     /* ---------- nhân vật: dealer và người chơi ---------- */
     const torsoGeo = new THREE.LatheGeometry([[0.5, -1.4], [0.55, 0.1], [0.64, 0.95], [0.73, 1.5], [0.71, 1.82], [0.5, 2.02], [0.2, 2.11], [0.0, 2.12]].map((p) => new THREE.Vector2(p[0], p[1])), 26);
@@ -456,8 +456,77 @@
       m.rotation.x = -Math.PI / 2; m.position.set(0, 0.215, photoAnchor.z + 0.05); m.renderOrder = 1; m.visible = false; scene.add(m);
       return m;
     })();
-    const camUp = new V3(), camFwd = new V3(), swayQ = new THREE.Quaternion(), Z1 = new V3(0, 0, 1);
+    /* Người chơi ảnh thật: mỗi ghế một tấm cắt nền chụp đúng hướng ngồi (ghế góc bàn: nghiêng 3/4; ghế đầu bàn: nhìn ngang).
+     * h = chiều cao tấm ảnh trong cảnh; (px, py) = điểm "bàn tay" trong ảnh, tính từ góc dưới trái — điểm này được đặt lên mép bàn. */
+    const PEOPLE = {
+      A: { h: 2.5, px: 0.88, py: 0.05 },
+      B: { h: 2.6, px: 0.37, py: 0.09 },
+      C: { h: 2.6, px: 0.9, py: 0.22 },
+    };
+    const pTex = {};
+    if (opts.playerPhotos) {
+      const loader = new THREE.TextureLoader();
+      Object.keys(opts.playerPhotos).forEach((k) => loader.load(opts.playerPhotos[k], (tex) => {
+        tex.encoding = THREE.sRGBEncoding; tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+        pTex[k] = tex;
+        for (const st of seats) if (st.key === k && !st.ph) st.ph = makePhoto(k);
+      }, undefined, () => {}));
+    }
+    function makePhoto(k) {
+      if (!pTex[k] || !PEOPLE[k]) return null;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: pTex[k], transparent: true, alphaTest: 0.05, color: 0xe9ddcf }));
+      m.userData.asp = pTex[k].image.width / pTex[k].image.height; m.userData.cfg = PEOPLE[k]; m.userData.ph = Math.random() * 6.28;
+      m.visible = false; m.renderOrder = 2; scene.add(m);
+      return m;
+    }
+    // ghế bành lưng cong: che phần dưới của tấm ảnh và cho người chơi một chỗ ngồi thật
+    const tubMat = M(0x2a1410, 0.55, { side: THREE.DoubleSide }), tubSeatMat = M(0x3a1d15, 0.7);
+    const arcBand = (r0, r1, half, y0, y1) => {
+      const sh = new THREE.Shape();
+      sh.absarc(0, 0, r1, Math.PI / 2 - half, Math.PI / 2 + half, false);
+      sh.absarc(0, 0, r0, Math.PI / 2 + half, Math.PI / 2 - half, true);
+      const g = new THREE.ExtrudeGeometry(sh, { depth: y1 - y0, bevelEnabled: false, curveSegments: 20 });
+      g.rotateX(-Math.PI / 2); g.translate(0, y0, 0);     // dựng đứng lên; lưng ghế nằm phía −z (sau lưng người ngồi, người ngồi nhìn về +z)
+      return g;
+    };
+    const tubArmGeo = arcBand(0.78, 0.95, 2.2, -1.75, -0.12), tubBackGeo = arcBand(0.78, 0.95, 1.05, -0.12, 0.95);
+    const tubSeatGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.34, 28), tubPostGeo = new THREE.CylinderGeometry(0.12, 0.16, 0.9, 12), tubFootGeo = new THREE.CylinderGeometry(0.62, 0.7, 0.08, 24);
+    function buildTub(x, z, rot) {
+      const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot;
+      const arm = new THREE.Mesh(tubArmGeo, tubMat), back = new THREE.Mesh(tubBackGeo, tubMat);
+      const seat = new THREE.Mesh(tubSeatGeo, tubSeatMat); seat.position.y = -1.17;
+      const post = new THREE.Mesh(tubPostGeo, chairTrim); post.position.y = -2.15;
+      const foot = new THREE.Mesh(tubFootGeo, chairTrim); foot.position.y = -2.56;
+      for (const m of [arm, back, seat]) { m.castShadow = true; m.receiveShadow = true; }
+      g.add(arm, back, seat, post, foot); g.visible = false; scene.add(g);
+      return g;
+    }
+    const camUp = new V3(), camRt = new V3(), camFwd = new V3(), swayQ = new THREE.Quaternion(), Z1 = new V3(0, 0, 1), dimC = new THREE.Color();
+    function updatePlayers(now) {
+      const t = now / 1000, mv = Math.min(1, Math.max(motion(), 0));
+      for (const st of seats) {
+        if (!st.fig) continue;
+        const show = photo.on && !!st.ph;
+        st.fig.g.visible = !show;
+        if (st.tub) st.tub.visible = show;
+        if (!st.ph) continue;
+        st.ph.visible = show;
+        if (!show) continue;
+        const m = st.ph, c = m.userData.cfg, ph = m.userData.ph;
+        const H = c.h * (1 + Math.sin(t * 1.1 + ph) * 0.004), W = c.h * m.userData.asp;
+        swayQ.setFromAxisAngle(Z1, (Math.sin(t * 0.41 + ph) * 0.007 + Math.sin(t * 0.77 + ph * 2) * 0.003) * mv);
+        camUp.set(0, 1, 0).applyQuaternion(swayQ).applyQuaternion(camera.quaternion);
+        camRt.set(1, 0, 0).applyQuaternion(swayQ).applyQuaternion(camera.quaternion);
+        m.quaternion.copy(camera.quaternion).multiply(swayQ);
+        m.scale.set(W, H, 1);
+        m.position.copy(st.hand).addScaledVector(camRt, (0.5 - c.px) * W).addScaledVector(camUp, (0.5 - c.py) * H);
+        // bỏ bài thì tối đi; đến lượt thì sáng lên một chút
+        st.dim = lerp(st.dim || 0, st.out ? 1 : 0, 0.1);
+        m.material.color.setHex(0xe9ddcf).lerp(dimC.setHex(0x4a423c), st.dim * 0.8);
+      }
+    }
     function updatePhoto(now) {
+      updatePlayers(now);
       const show = photo.on && photo.top && photo.front;
       dealer.g.visible = !show; contact.visible = !!show;
       if (photo.top) photo.top.visible = false;
@@ -482,12 +551,13 @@
       });
     }
 
-    const LOOKS = [
-      { coat: 0x1c2740, shirt: 0xe9e2d4, sleeve: 0x1c2740, hair: 0x120c0a },
-      { coat: 0x9c2a1c, shirt: 0xc99872, sleeve: 0x9c2a1c, hair: 0x1a0f0c, longHair: true },
-      { coat: 0x3d3833, shirt: 0xe3d5b6, sleeve: 0x3d3833, hair: 0xa39c92 },
-      { coat: 0x234536, shirt: 0xe9e2d4, sleeve: 0x234536, hair: 0x2a1a12 },
-    ];
+    // mỗi ghế một nhân vật cố định: C = Anh Ba, A = Chị Tư, B = Bác Sáu
+    const LOOKS = {
+      C: { coat: 0x1c2740, shirt: 0xe9e2d4, sleeve: 0x1c2740, hair: 0x120c0a },
+      A: { coat: 0x9c2a1c, shirt: 0xc99872, sleeve: 0x9c2a1c, hair: 0x1a0f0c, longHair: true },
+      B: { coat: 0x3d3833, shirt: 0xe3d5b6, sleeve: 0x3d3833, hair: 0xa39c92 },
+      D: { coat: 0x234536, shirt: 0xe9e2d4, sleeve: 0x234536, hair: 0x2a1a12 },
+    };
 
     // các bàn khác phía xa: bàn đơn giản, người ngồi không cử động
     (function buildHall() {
@@ -517,22 +587,34 @@
     })();
 
     /* ---------- chỗ ngồi ---------- */
+    /* Dealer đứng giữa cạnh xa, khay chip ngay trước mặt. Người chơi ngồi quanh hai đầu cong của bàn như bàn thật:
+     * A, B ở hai góc phía xa (cách dealer một khoảng), C, D ở hai đầu bàn, "mình" ở giữa cạnh gần. */
+    const ARC_X = RL - RW, PHI = 54 * Math.PI / 180;
+    const arc = (side, r, phi) => [side * (ARC_X + r * Math.cos(phi)), -r * Math.sin(phi)];   // điểm trên cung tròn đầu bàn
+    const corner = (side) => {
+      const hand = arc(side, RW - 0.2, PHI);
+      return { cx: side * 2.4, cz: -1.05, sp: 0.3, k: 1.2, bet: [side * 1.15, -0.15], lab: [0, 0.74], edge: hand, plate: arc(side, RW - 0.62, PHI - 0.16), plateY: 0.02, hand,
+        fig: [...arc(side, RW + 0.55, PHI), -side * (Math.PI / 2 - PHI)], tub: [...arc(side, RW + 0.92, PHI), -side * (Math.PI / 2 - PHI)] };
+    };
+    const end = (side) => ({ cx: side * 2.65, cz: 0.4, sp: 0.3, k: 1.2, bet: [side * 2.3, 1.25], lab: [-side * 0.1, 0.72], edge: [side * 4.05, 0.35], plate: [side * 4.05, 0.35], hand: [side * (RL - 0.2), 0.35],
+      fig: [side * (RL + 0.55), 0.35, -side * Math.PI / 2], tub: [side * (RL + 0.78), 0.35, -side * Math.PI / 2] });
     const SLOT = {
       me: { cx: 0, cz: 1.5, sp: 0.66, k: 1.2, bet: [0, 0.38], lab: [0.78, 0.15], edge: [0, 2.9] },
-      C: { cx: -2.65, cz: 0.4, sp: 0.3, k: 1.2, bet: [-2.3, 1.25], lab: [0.1, 0.72], edge: [-4.05, 0.35], plate: [-4.05, 0.35], fig: [-(RL + 0.55), 0.35, Math.PI / 2] },
-      A: { cx: -2.2, cz: -1.05, sp: 0.3, k: 1.2, bet: [-1.0, -0.2], lab: [0, 0.74], edge: [-2.3, -2.45], plate: [-2.3, -2.48], fig: [-2.3, -(RW + 0.55), 0] },
-      B: { cx: 2.2, cz: -1.05, sp: 0.3, k: 1.2, bet: [1.0, -0.2], lab: [0, 0.74], edge: [2.3, -2.45], plate: [2.3, -2.48], fig: [2.3, -(RW + 0.55), 0] },
-      D: { cx: 2.65, cz: 0.4, sp: 0.3, k: 1.2, bet: [2.3, 1.25], lab: [-0.1, 0.72], edge: [4.05, 0.35], plate: [4.05, 0.35], fig: [RL + 0.55, 0.35, -Math.PI / 2] },
+      C: end(-1), A: corner(-1), B: corner(1), D: end(1),
     };
     const ORDER = { 2: ['me', 'B'], 3: ['me', 'A', 'B'], 4: ['me', 'C', 'A', 'B'], 5: ['me', 'C', 'A', 'B', 'D'] };
     const potPos = new V3(0, 0, -1.0);
     let lastW = 0, lastH = 0;
     function setSeats(n) {
-      for (const s of seats) if (s.fig) { s.fig.dispose(); figures.splice(figures.indexOf(s.fig), 1); }
-      seats = (ORDER[n] || ORDER[4]).map((k, i) => {
+      for (const s of seats) {
+        if (s.fig) { s.fig.dispose(); figures.splice(figures.indexOf(s.fig), 1); }
+        if (s.ph) { scene.remove(s.ph); s.ph.material.dispose(); }
+        if (s.tub) scene.remove(s.tub);
+      }
+      seats = (ORDER[n] || ORDER[4]).map((k) => {
         const s = SLOT[k];
-        const fig = s.fig ? buildFigure(Object.assign({ x: s.fig[0], y: -0.75, z: s.fig[1], rot: s.fig[2], k: 1.2, reach: 0.72, handX: 0.36, seated: true }, LOOKS[(i - 1) % LOOKS.length])) : null;
-        return { s, fig, betPos: new V3(s.bet[0], 0, s.bet[1]), platePos: s.plate ? new V3(s.plate[0], 0.5, s.plate[1]) : new V3(0, 0, 2.6), betLab: new V3(s.bet[0] + s.lab[0], 0.2, s.bet[1] + s.lab[1]), edge: new V3(s.edge[0], 0, s.edge[1]), pile: null };
+        const fig = s.fig ? buildFigure(Object.assign({ x: s.fig[0], y: -0.75, z: s.fig[1], rot: s.fig[2], k: 1.2, reach: 0.72, handX: 0.36, seated: true }, LOOKS[k] || LOOKS.C)) : null;
+        return { s, key: k, fig, ph: fig ? makePhoto(k) : null, tub: s.tub && PEOPLE[k] ? buildTub(s.tub[0], s.tub[1], s.tub[2]) : null, hand: s.hand ? new V3(s.hand[0], 0.2, s.hand[1]) : null, out: false, dim: 0, betPos: new V3(s.bet[0], 0, s.bet[1]), platePos: s.plate ? new V3(s.plate[0], s.plateY == null ? 0.5 : s.plateY, s.plate[1]) : new V3(0, 0, 2.6), betLab: new V3(s.bet[0] + s.lab[0], 0.2, s.bet[1] + s.lab[1]), edge: new V3(s.edge[0], 0, s.edge[1]), pile: null };
       });
       lastW = 0;
     }
@@ -555,7 +637,7 @@
       const pts = [[RL, 0.15, 0.7], [-RL, 0.15, 0.7], [RL, 0.15, -0.7], [-RL, 0.15, -0.7], [0, 0.1, RW + 0.1], [2.1, 0.1, RW - 0.05], [-2.1, 0.1, RW - 0.05]];
       // đỉnh đầu dealer: nhân vật 3D, hoặc mép trên tấm ảnh (tấm ảnh vuông góc với hướng nhìn)
       if (photo.on && photo.top) pts.push([0, photoAnchor.y + PH_TOP * Math.cos(el), photoAnchor.z - PH_TOP * Math.sin(el)]); else pts.push([0, 3.95, -(RW + 0.42)]);
-      for (const s of seats) if (s.fig && Math.abs(s.fig.g.position.x) < RL) { const p = s.fig.g.position; pts.push([p.x, 2.7, p.z]); }
+      for (const s of seats) if (s.fig) { const p = s.fig.g.position; if (Math.abs(p.x) < RL) pts.push([p.x, 2.7, p.z]); else pts.push([Math.sign(p.x) * (RL + 1.35), 0.6, p.z]); }
       probe.aspect = aspect; probe.fov = camera.fov; probe.updateProjectionMatrix();
       const measure = (d, tz) => {
         probe.position.set(0, 0.3 + Math.sin(el) * d, tz + Math.cos(el) * d); probe.lookAt(0, 0.3, tz); probe.updateMatrixWorld(); probe.matrixWorldInverse.copy(probe.matrixWorld).invert();
@@ -647,7 +729,7 @@
     const api = {
       el: canvas,
       setFelt(k) { feltKey = FELTS[k] ? k : 'son'; feltRedraw(); },
-      setDealerStyle(style) { photo.on = style === 'photo'; lastW = 0; },
+      setPeople(style) { photo.on = style === 'photo'; lastW = 0; },
       setSeats,
       anchor(kind, seat) {
         if (kind === 'pot') return new V3(potPos.x, 0.2, potPos.z + 0.5);
@@ -665,6 +747,7 @@
         for (const s of seats) if (s.pile) { scene.remove(s.pile); s.pile = null; }
         if (api._pot) { scene.remove(api._pot); api._pot = null; }
         glow = null; turnSeat = -1; deck2.visible = false; setDeck(24); peeking = false;
+        for (const s of seats) s.out = false;
       },
 
       async newHand(mode) {
@@ -753,6 +836,7 @@
       fold(seat) {
         const mine = cards.filter((c) => c.seat === seat && !c.gone && !c.mucked);
         const s = seats[seat]; if (s && s.fig) s.fig.reach(new V3(s.s.cx, 0, s.s.cz), 520 * motion());
+        if (s) s.out = true;
         return Promise.all(mine.map((c, i) => {
           const from = c.pos.clone(), y0 = c.yaw, f0 = c.flip, y1 = (Math.random() - 0.5) * 0.9, k0 = c.g.scale.x;
           const to = muck.clone(); to.x += (Math.random() - 0.5) * 0.16; to.z += (Math.random() - 0.5) * 0.12; to.y = 0.008 + cards.filter((k) => k.mucked).length * 0.003 + i * 0.003;

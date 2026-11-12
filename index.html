@@ -545,9 +545,9 @@ details.why[open] summary::before { content: "▾ "; }
       <label class="rule-opt"><input type="radio" name="squeeze" id="sqAll" value="all"><span>Mọi lá của bạn</span></label>
     </fieldset>
     <fieldset>
-      <legend>Dealer</legend>
+      <legend>Dealer và người chơi</legend>
       <label class="rule-opt"><input type="radio" name="dealer" id="dlPhoto" value="photo" checked><span>Ảnh người thật<small>Giống thật, đứng yên</small></span></label>
-      <label class="rule-opt"><input type="radio" name="dealer" id="dl3d" value="3d"><span>Nhân vật 3D<small>Cách điệu, tay vẩy bài</small></span></label>
+      <label class="rule-opt"><input type="radio" name="dealer" id="dl3d" value="3d"><span>Hình khối 3D<small>Cách điệu, tay cử động</small></span></label>
     </fieldset>
     <fieldset>
       <legend>Tốc độ hoạt ảnh</legend>
@@ -728,6 +728,7 @@ details.why[open] summary::before { content: "▾ "; }
   const X = window.Xito, F = window.XitoFx, Sound = F.Sound;
   const $ = (id) => document.getElementById(id);
   const FREQ = X.handFrequencies();
+  // Thứ tự theo chiều kim đồng hồ từ chỗ bạn. Mỗi người một ghế cố định: bàn 2 người chỉ có Bác Sáu, 3 người thêm Chị Tư, 4 người thêm Anh Ba.
   const BOTS = [
     { name: 'Anh Ba', style: 'tight' },
     { name: 'Chị Tư', style: 'loose' },
@@ -797,11 +798,11 @@ details.why[open] summary::before { content: "▾ "; }
   let screen = 'lobby';
 
   /* ---------------- bàn 3D ---------------- */
-  const stage = window.XitoStage ? window.XitoStage.create($('stage'), { motion, sound: (k) => Sound.play(k), topInset: 36, dealerPhotos: { top: 'dealer-top.webp', front: 'dealer-front.webp' } }) : null;
+  const stage = window.XitoStage ? window.XitoStage.create($('stage'), { motion, sound: (k) => Sound.play(k), topInset: 36, dealerPhotos: { top: 'dealer-top.webp', front: 'dealer-front.webp' }, playerPhotos: { A: 'player-chi-tu.webp', B: 'player-bac-sau.webp', C: 'player-anh-ba.webp' } }) : null;
   const noop = () => Promise.resolve();
   const S = stage || new Proxy({}, { get: (_, k) => (k === 'anchor' || k === 'pick' ? () => null : noop) });
   if (!stage) $('stage').classList.add('nogl');
-  S.setDealerStyle(fx.dealer);
+  S.setPeople(fx.dealer);
   let plates = [], betLabs = [];
 
   function buildSeats() {
@@ -1117,7 +1118,7 @@ details.why[open] summary::before { content: "▾ "; }
     if (F.squeeze.cancel) F.squeeze.cancel();
     $('banner').hidden = true;
     const players = [{ name: 'Bạn', human: true, stack: myStack }]
-      .concat(BOTS.slice(0, cfg.players - 1).map((b) => ({ ...b, stack: room.buyIn })));
+      .concat(BOTS.slice(BOTS.length - (cfg.players - 1)).map((b) => ({ ...b, stack: room.buyIn })));
     game = new X.Game({ players, ante: room.ante, rules: cfg.rules, shuffleMode: cfg.shuffle });
     ui = freshUi();
     lastFeedback = null; analysis = null;
@@ -1808,7 +1809,7 @@ details.why[open] summary::before { content: "▾ "; }
     }
     if (e.target.name === 'squeeze' || e.target.name === 'speed' || e.target.name === 'dealer') {
       fx[e.target.name] = e.target.value;
-      if (e.target.name === 'dealer') S.setDealerStyle(fx.dealer);
+      if (e.target.name === 'dealer') S.setPeople(fx.dealer);
       store.set('fx', fx);
       applyFxVars();
     }
