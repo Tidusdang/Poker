@@ -433,6 +433,55 @@
       return fig;
     }
     const dealer = buildFigure({ x: 0, z: -(RW + 0.42), k: 1.35, reach: 0.62, handX: 0.62, coat: 0x17110f, shirt: 0xefe6d6, sleeve: 0xefe6d6, hair: 0x130c0a, glove: true, dealer: true });
+    /* Dealer ảnh người thật: hai tấm cắt nền luôn quay mặt về máy quay.
+     * Tấm chụp từ trên dùng cho góc nhìn bàn chơi, tấm chính diện dùng cho góc nhìn sảnh; đổi góc thì hòa dần sang nhau. */
+    const photo = { on: false, top: null, front: null, kick: -1e9 };
+    const PH_TOP = 3.55, PH_FRONT = 3.85, photoAnchor = new V3(0, 0.2, -(TW + 0.16));
+    if (opts.dealerPhotos) {
+      const loader = new THREE.TextureLoader();
+      ['top', 'front'].forEach((k) => loader.load(opts.dealerPhotos[k], (tex) => {
+        tex.encoding = THREE.sRGBEncoding; tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.05, color: 0xe9ddcf }));
+        m.userData.asp = tex.image.width / tex.image.height; m.visible = false; m.renderOrder = 2;
+        scene.add(m); photo[k] = m; lastW = 0;
+      }, undefined, () => {}));
+    }
+    // bóng đổ mờ dưới hai bàn tay để dealer "chạm" vào bàn
+    const contact = (() => {
+      const c = document.createElement('canvas'); c.width = c.height = 128;
+      const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 4, 64, 64, 64);
+      gr.addColorStop(0, 'rgba(0,0,0,.62)'); gr.addColorStop(0.55, 'rgba(0,0,0,.28)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.75), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+      m.rotation.x = -Math.PI / 2; m.position.set(0, 0.215, photoAnchor.z + 0.05); m.renderOrder = 1; m.visible = false; scene.add(m);
+      return m;
+    })();
+    const camUp = new V3(), camFwd = new V3(), swayQ = new THREE.Quaternion(), Z1 = new V3(0, 0, 1);
+    function updatePhoto(now) {
+      const show = photo.on && photo.top && photo.front;
+      dealer.g.visible = !show; contact.visible = !!show;
+      if (photo.top) photo.top.visible = false;
+      if (photo.front) photo.front.visible = false;
+      if (!show) return;
+      const t = now / 1000, breath = 1 + Math.sin(t * 1.3) * 0.004;
+      // đung đưa rất nhẹ quanh điểm tựa ở bàn tay, để ảnh tĩnh không bị "đơ"
+      const sway = (Math.sin(t * 0.47) * 0.006 + Math.sin(t * 0.83 + 1.3) * 0.003) * Math.min(1, Math.max(motion(), 0));
+      swayQ.setFromAxisAngle(Z1, sway);
+      camUp.set(0, 1, 0).applyQuaternion(swayQ).applyQuaternion(camera.quaternion);
+      camFwd.set(0, 0, -1).applyQuaternion(camera.quaternion);
+      const elev = Math.asin(Math.max(-1, Math.min(1, -camFwd.y)));
+      const w = clamp01((elev - 0.4) / 0.22), ws = w * w * (3 - 2 * w);       // 1 = nhìn từ trên (bàn chơi)
+      const kick = Math.sin(clamp01((now - photo.kick) / 280) * Math.PI) * 0.05;
+      [[photo.top, ws, PH_TOP], [photo.front, 1 - ws, PH_FRONT]].forEach(([m, op, h]) => {
+        if (op < 0.02) return;
+        const H = h * breath;
+        m.visible = true; m.material.opacity = op;
+        m.quaternion.copy(camera.quaternion).multiply(swayQ);
+        m.scale.set(H * m.userData.asp, H, 1);
+        m.position.copy(photoAnchor).addScaledVector(camUp, H / 2 - kick);
+      });
+    }
+
     const LOOKS = [
       { coat: 0x1c2740, shirt: 0xe9e2d4, sleeve: 0x1c2740, hair: 0x120c0a },
       { coat: 0x9c2a1c, shirt: 0xc99872, sleeve: 0x9c2a1c, hair: 0x1a0f0c, longHair: true },
@@ -502,7 +551,10 @@
     function fitPlay() {
       const w = container.clientWidth || 1, h = container.clientHeight || 1, aspect = w / h;
       const el = aspect < 1.5 ? 0.86 : 0.76;
-      const pts = [[RL, 0.15, 0.7], [-RL, 0.15, 0.7], [RL, 0.15, -0.7], [-RL, 0.15, -0.7], [0, 0.1, RW + 0.1], [2.1, 0.1, RW - 0.05], [-2.1, 0.1, RW - 0.05], [0, 3.95, -(RW + 0.42)]];
+      const topRes = 2 * (opts.topInset || 0) / h;   // dải trên cùng dành cho lời dealer, không che mặt dealer
+      const pts = [[RL, 0.15, 0.7], [-RL, 0.15, 0.7], [RL, 0.15, -0.7], [-RL, 0.15, -0.7], [0, 0.1, RW + 0.1], [2.1, 0.1, RW - 0.05], [-2.1, 0.1, RW - 0.05]];
+      // đỉnh đầu dealer: nhân vật 3D, hoặc mép trên tấm ảnh (tấm ảnh vuông góc với hướng nhìn)
+      if (photo.on && photo.top) pts.push([0, photoAnchor.y + PH_TOP * Math.cos(el), photoAnchor.z - PH_TOP * Math.sin(el)]); else pts.push([0, 3.95, -(RW + 0.42)]);
       for (const s of seats) if (s.fig && Math.abs(s.fig.g.position.x) < RL) { const p = s.fig.g.position; pts.push([p.x, 2.7, p.z]); }
       probe.aspect = aspect; probe.fov = camera.fov; probe.updateProjectionMatrix();
       const measure = (d, tz) => {
@@ -512,9 +564,9 @@
         return { mx, top, bot };
       };
       // đặt nội dung cân giữa theo chiều dọc, rồi tìm khoảng cách gần nhất mà vẫn vừa khung
-      const panFor = (d) => { let a = -8, b = 8; for (let i = 0; i < 20; i++) { const m = (a + b) / 2, r = measure(d, m); if (r.top + r.bot + 0.06 > 0) b = m; else a = m; } return (a + b) / 2; };
+      const panFor = (d) => { let a = -8, b = 8; for (let i = 0; i < 20; i++) { const m = (a + b) / 2, r = measure(d, m); if (r.top + r.bot + topRes - 0.04 > 0) b = m; else a = m; } return (a + b) / 2; };
       let lo = 5, hi = 50;
-      for (let i = 0; i < 20; i++) { const d = (lo + hi) / 2, r = measure(d, panFor(d)); if (r.mx <= 0.97 && r.top <= 0.93) hi = d; else lo = d; }
+      for (let i = 0; i < 20; i++) { const d = (lo + hi) / 2, r = measure(d, panFor(d)); if (r.mx <= 0.97 && r.top <= 0.98 - topRes) hi = d; else lo = d; }
       const tz = panFor(hi);
       cam.playTgt.set(0, 0.3, tz);
       cam.playPos.set(0, 0.3 + Math.sin(el) * hi, tz + Math.cos(el) * hi);
@@ -575,6 +627,7 @@
       if (w !== lastW || h !== lastH) { lastW = w; lastH = h; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); fitPlay(); }
       for (const f of figures) f.update(now);
       updateCamera(now);
+      updatePhoto(now);
       const t = now / 1000;
       for (const sp of bokeh) sp.material.opacity = sp.userData.base * (0.75 + 0.25 * Math.sin(t * sp.userData.sp + sp.userData.ph));
       ringOp = lerp(ringOp, turnSeat >= 0 ? 0.75 + 0.25 * Math.sin(t * 3.2) : 0, 0.12);
@@ -594,6 +647,7 @@
     const api = {
       el: canvas,
       setFelt(k) { feltKey = FELTS[k] ? k : 'son'; feltRedraw(); },
+      setDealerStyle(style) { photo.on = style === 'photo'; lastW = 0; },
       setSeats,
       anchor(kind, seat) {
         if (kind === 'pot') return new V3(potPos.x, 0.2, potPos.z + 0.5);
@@ -674,7 +728,7 @@
         const dist = dir.length(); dir.normalize();
         const start = from.clone().addScaledVector(dir, 0.72).setY(0.42);
         c.pos.copy(from); c.flip = 0; c.yaw = Math.atan2(dir.x, dir.z) + Math.PI; applyPose(c); c.g.visible = false;
-        dealer.throwTo(from, to, 300 * Math.max(motion(), 0.2));
+        dealer.throwTo(from, to, 300 * Math.max(motion(), 0.2)); photo.kick = performance.now();
         const spin = (Math.random() < 0.5 ? -1 : 1) * Math.PI * 2, yEnd = (Math.random() - 0.5) * 0.07, y0 = c.yaw;
         const apex = 0.55 + dist * 0.09;
         return delay(170).then(() => {

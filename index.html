@@ -386,8 +386,9 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
 .pl-sub .tag { font-size: 10px; padding: 1px 6px; }
 .hud > .plate.meplate { left: 50%; top: auto; bottom: 5px; transform: translateX(-50%); max-width: 96%; flex-direction: row; gap: 8px; padding: 3px 12px; white-space: nowrap; }
 .meplate .pl-sub { flex-wrap: nowrap; overflow: hidden; }
-.hud .banner { top: 8px; transform: translateX(-50%); padding: 6px 18px; animation-name: popTop; }
-.hud .banner strong { font-size: 24px; }
+/* Kết quả lật bài nằm gọn một dòng ở dải trên cùng, không che mặt dealer */
+.hud .banner { top: 5px; transform: translateX(-50%); padding: 2px 16px 3px; flex-direction: row; align-items: baseline; gap: 8px; border-radius: 999px; white-space: nowrap; width: max-content; max-width: 94%; box-shadow: 0 0 0 3px #170c0acc, 0 8px 20px -6px #000; animation-name: popTop; }
+.hud .banner strong { font-size: 20px; white-space: normal; }
 @keyframes popTop { from { transform: translateX(-50%) scale(.7); opacity: 0; } }
 .meplate .pl-name { font-size: 13px; } .meplate .pl-stack { font-size: 13px; }
 .betlab { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--eggshell); background: var(--cinnabar-deep); border: 1px solid var(--cinnabar); border-radius: 999px; padding: 0 7px; font-variant-numeric: tabular-nums; }
@@ -396,7 +397,7 @@ button, .card, .seg span, .rule-opt { touch-action: manipulation; }
 .potlab b { font-family: var(--mono); font-size: 14px; color: var(--gold); font-variant-numeric: tabular-nums; }
 .bubble { max-width: min(80%, 300px); background: var(--eggshell); color: var(--ink); font-size: 12.5px; font-weight: 600; line-height: 1.3; border-radius: 12px; padding: 4px 12px; text-align: center; box-shadow: 0 6px 16px #000000aa; text-wrap: balance; }
 .hud .streets { position: absolute; right: 10px; bottom: 10px; }
-.hud > .bubble { left: 50%; top: 8px; transform: translateX(-50%); width: max-content; max-width: 94%; }
+.hud > .bubble { left: 50%; top: 6px; transform: translateX(-50%); width: max-content; max-width: 94%; }
 .hud .streets span { width: 18px; height: 3px; }
 .stage.nogl { height: auto; padding: 14px; }
 .stage.nogl .hud { position: static; display: flex; flex-direction: column; gap: 8px; align-items: center; }
@@ -542,6 +543,11 @@ details.why[open] summary::before { content: "▾ "; }
       <label class="rule-opt"><input type="radio" name="squeeze" id="sqHole" value="hole"><span>Chỉ lá úp</span></label>
       <label class="rule-opt"><input type="radio" name="squeeze" id="sqLast" value="last" checked><span>Lá úp và lá cuối<small>Kèm mọi lá khi tất tay chạy bài</small></span></label>
       <label class="rule-opt"><input type="radio" name="squeeze" id="sqAll" value="all"><span>Mọi lá của bạn</span></label>
+    </fieldset>
+    <fieldset>
+      <legend>Dealer</legend>
+      <label class="rule-opt"><input type="radio" name="dealer" id="dlPhoto" value="photo" checked><span>Ảnh người thật<small>Giống thật, đứng yên</small></span></label>
+      <label class="rule-opt"><input type="radio" name="dealer" id="dl3d" value="3d"><span>Nhân vật 3D<small>Cách điệu, tay vẩy bài</small></span></label>
     </fieldset>
     <fieldset>
       <legend>Tốc độ hoạt ảnh</legend>
@@ -756,7 +762,7 @@ details.why[open] summary::before { content: "▾ "; }
   let cfg = Object.assign({ players: 4, ante: 10, stack: 1000, rules: 'standard', shuffle: 'real3' }, store.get('cfg', {}));
   const LAB = window.XitoLabData || null;
   let whyOpen = store.get('whyOpen', false);
-  let fx = Object.assign({ squeeze: 'last', speed: 'normal', sound: false }, store.get('fx', {}));
+  let fx = Object.assign({ squeeze: 'last', speed: 'normal', sound: false, dealer: 'photo' }, store.get('fx', {}));
   let stats = Object.assign({ hands: 0, won: 0, net: 0, decisions: 0, good: 0 }, store.get('stats', {}));
   let game, ui, analysis = null, lastFeedback = null, gameId = 0, raiseTo = 0;
 
@@ -791,10 +797,11 @@ details.why[open] summary::before { content: "▾ "; }
   let screen = 'lobby';
 
   /* ---------------- bàn 3D ---------------- */
-  const stage = window.XitoStage ? window.XitoStage.create($('stage'), { motion, sound: (k) => Sound.play(k) }) : null;
+  const stage = window.XitoStage ? window.XitoStage.create($('stage'), { motion, sound: (k) => Sound.play(k), topInset: 36, dealerPhotos: { top: 'dealer-top.webp', front: 'dealer-front.webp' } }) : null;
   const noop = () => Promise.resolve();
   const S = stage || new Proxy({}, { get: (_, k) => (k === 'anchor' || k === 'pick' ? () => null : noop) });
   if (!stage) $('stage').classList.add('nogl');
+  S.setDealerStyle(fx.dealer);
   let plates = [], betLabs = [];
 
   function buildSeats() {
@@ -1754,6 +1761,7 @@ details.why[open] summary::before { content: "▾ "; }
     f.shuffle.value = cfg.shuffle;
     f.squeeze.value = fx.squeeze;
     f.speed.value = fx.speed;
+    f.dealer.value = fx.dealer;
   }
   function toggleSettings(open) {
     $('settings').hidden = !open;
@@ -1798,8 +1806,9 @@ details.why[open] summary::before { content: "▾ "; }
       if (game) game.shuffleMode = cfg.shuffle;
       renderMemory();
     }
-    if (e.target.name === 'squeeze' || e.target.name === 'speed') {
+    if (e.target.name === 'squeeze' || e.target.name === 'speed' || e.target.name === 'dealer') {
       fx[e.target.name] = e.target.value;
+      if (e.target.name === 'dealer') S.setDealerStyle(fx.dealer);
       store.set('fx', fx);
       applyFxVars();
     }

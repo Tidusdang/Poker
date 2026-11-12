@@ -96,6 +96,8 @@ fs.writeFileSync(path.join(out, 'index.html'), head + page + '\n</body>\n</html>
 
 for (const f of ['xito-engine.js', 'xito-fx.js', 'xito-stage.js', 'xito-sim.js', 'xito-sim-worker.js', 'xito-lab-data.js']) fs.copyFileSync(path.join(root, f), path.join(out, f));
 
+for (const f of ['dealer-top.webp', 'dealer-front.webp']) fs.copyFileSync(path.join(root, 'assets', 'dealer', f), path.join(out, f));
+
 /* ---------- icon + manifest + service worker ---------- */
 fs.cpSync(path.join(root, 'assets', 'icons'), path.join(out, 'icons'), { recursive: true });
 fs.writeFileSync(path.join(out, 'manifest.webmanifest'), JSON.stringify({
