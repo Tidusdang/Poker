@@ -67,3 +67,37 @@ console.log('Tất cả test đều qua');
   }
   console.log('Xào bài và gom bài: OK');
 }
+
+// đoán lá tẩy: phân loại lá tẩy, mô hình "máy sẽ cược gì nếu tẩy là lá này", và một lượt đo nhỏ
+{
+  const T = require('../sim/run-tay.js');
+  const c = (r, s) => r * 4 + s;                      // r: 0..5 = 9..A
+  assert.strictEqual(T.holeClass([c(4, 0), c(4, 1)]), 0, 'tẩy K, ngửa K → trùng');
+  assert.strictEqual(T.holeClass([c(5, 0), c(4, 1)]), 2, 'tẩy A lẻ');
+  assert.strictEqual(T.holeClass([c(1, 0), c(4, 1)]), 3, 'tẩy 10 lẻ');
+  assert.strictEqual(T.holeClass([c(0, 0), c(1, 1), c(2, 2), c(3, 3), c(4, 0)]), 1, 'tẩy 9 làm thành sảnh');
+  assert.strictEqual(T.holeClass([c(0, 0), c(1, 1), c(2, 2), c(3, 3), c(5, 0)]), 3, 'tẩy 9, ngửa 10 J Q A: không thành sảnh, là lá nhỏ lẻ');
+  const g = new X.Game({ players: [{ name: 'Bạn', style: 'sly', stack: 1000 }, { name: 'Anh Ba', style: 'tight', stack: 1000 }, { name: 'Chị Tư', style: 'loose', stack: 1000 }], ante: 10 });
+  let checked = 0;
+  for (let h = 0; h < 6; h++) {
+    for (const p of g.players) p.stack = 1000;
+    g.startHand();
+    while (g.phase !== 'done') {
+      if (g.phase === 'between') { g.proceed(); continue; }
+      const i = g.toAct, L = g.legal(i);
+      const lik = T.actionLik(g, i, g.players[i].cards[0], Math.random);
+      const total = lik.raise + lik.call + lik.check + lik.fold;
+      assert(Math.abs(total - 1) < 1e-9, 'xác suất các hành động phải cộng lại bằng 1');
+      assert(Object.values(lik).every((x) => x >= 0 && x <= 1));
+      if (L.toCall === 0) assert(lik.call === 0 && lik.fold === 0); else assert(lik.check === 0);
+      checked++;
+      const a = X.botDecide(g, i); g.act(i, a.type, a.raiseTo);
+    }
+  }
+  const st = T.runBetting({ n: 3, hands: 40, readerHands: 5, seed: 1 });
+  assert.strictEqual(st.hands, 40);
+  assert.strictEqual(st.alive[1][0][0][0] + st.alive[1][0][1][0], 40, 'đầu ván máy nào cũng còn trong ván');
+  const sh = T.runShuffle({ n: 4, hands: 400, seed: 3 });
+  assert(sh.cutonly.next > 0.99 && sh.perfect.next < 0.15, 'chỉ kinh thì thứ tự giữ nguyên, trộn kỹ thì không');
+  console.log(`Đoán lá tẩy: OK (${checked} quyết định)`);
+}

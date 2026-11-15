@@ -208,6 +208,8 @@ function runShuffle({ n, hands, seed }) {
 
 if (!isMainThread) {
   parentPort.postMessage(workerData.kind === 'shuffle' ? runShuffle(workerData) : runBetting(workerData));
+} else if (require.main !== module) {
+  module.exports = { holeClass, actionLik, runBetting, runShuffle };      // cho test
 } else {
   const N = +(process.argv[2] || 200000), R = +(process.argv[3] || 20000), NS = +(process.argv[4] || 400000);
   const THREADS = Math.max(1, Math.min(8, require('os').cpus().length));
