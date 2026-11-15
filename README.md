@@ -34,6 +34,7 @@ Với Apple ID miễn phí, app hết hạn sau 7 ngày, chỉ cần cài lại 
 | `assets/dealer/` | Hai ảnh dealer đã tách nền (góc cao cho bàn chơi, chính diện cho sảnh). Ảnh do AI tạo, không phải người thật |
 | `assets/players/` | Ảnh ba người chơi ngồi sẵn trên ghế, đã tách nền, mỗi người chụp đúng hướng ngồi của ghế mình (Chị Tư và Bác Sáu ở hai góc bàn, Anh Ba ở đầu bàn). Mỗi người hai lớp: lớp trên bàn (thân, tay) và lớp `-low` dưới gầm bàn (chân, ghế) để cái bàn 3D che đúng chỗ. Ảnh do AI tạo, không phải người thật |
 | `xito-sim.js`, `xito-lab-data.js` | Mô phỏng 1 triệu ván và dữ liệu kinh nghiệm |
+| `sim/run-tay.js`, `xito-tay-data.js` | Đo cách đoán lá tẩy: cho các máy chơi ván có cược thật rồi thống kê lá tẩy theo lá ngửa, cách cược và kiểu xào bài. Chạy lại bằng `node sim/run-tay.js` |
 | `index.html` | Giao diện (dùng chung cho web, PWA và app) |
 | `scripts/build-web.mjs` | Đóng gói vào `www/` (font offline, manifest, service worker) |
 | `scripts/make-icons.mjs` | Vẽ icon và màn hình khởi động |

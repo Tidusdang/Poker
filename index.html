@@ -489,6 +489,11 @@ details.why[open] summary::before { content: "▾ "; }
 .lab-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
 .lab-note { font-size: 12.5px; color: var(--eggshell-2); margin: 0; line-height: 1.55; }
 .lab-note b { color: var(--gold); }
+.tay-head { margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+.lab .dim { color: var(--muted); font-size: 11px; }
+.lab th small { display: block; font-size: 10px; letter-spacing: 0; text-transform: none; }
+.lab tr.sub td { color: var(--muted); }
+.lab tr.grp td { padding-top: 10px; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); }
 .lab ol.basis { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--eggshell-2); }
 .lab ol.basis b { color: var(--eggshell); }
 .lab ol.basis code { font-family: var(--mono); font-size: 12px; color: var(--gold); }
@@ -691,6 +696,50 @@ details.why[open] summary::before { content: "▾ "; }
           </div>
         </div>
       </div>
+      <div class="lab-head tay-head" id="tayHead">
+        <div class="lab-row"><h2>Đoán lá tẩy của đối thủ</h2><div class="seg" id="taySegN"></div></div>
+        <p id="tayIntro"></p>
+      </div>
+      <div class="lab-grid" id="tayGrid">
+        <div class="card-panel">
+          <div class="panel-h"><h2>Đoán dựa vào đâu</h2></div>
+          <ol class="basis" id="tayBasis"></ol>
+        </div>
+        <div class="card-panel">
+          <div class="panel-h"><h2>Căn cứ 1 · Đếm lá</h2></div>
+          <p class="lab-note" id="tayCountNote"></p>
+          <table id="tayCount"></table>
+          <p class="lab-note" id="tayCountEx"></p>
+        </div>
+        <div class="card-panel">
+          <div class="lab-row"><div class="panel-h"><h2>Căn cứ 2 và 3 · Cách cược</h2></div><div class="seg" id="taySegBot"></div></div>
+          <div class="seg" id="taySegUps"></div>
+          <p class="lab-note" id="tayActNote"></p>
+          <table id="tayAct"></table>
+          <p class="lab-note" id="tayActWhy"></p>
+        </div>
+        <div class="card-panel">
+          <div class="panel-h"><h2>Khi họ tố, lá tẩy là gì</h2></div>
+          <p class="lab-note" id="tayBetNote"></p>
+          <table id="tayBet"></table>
+          <p class="lab-note" id="taySizeNote"></p>
+          <table id="taySize"></table>
+          <p class="lab-note" id="tayUpNote"></p>
+          <table id="tayUp"></table>
+        </div>
+        <div class="card-panel">
+          <div class="panel-h"><h2>Căn cứ 4 · Xấp bài ván trước</h2></div>
+          <p class="lab-note" id="tayShufNote"></p>
+          <table id="tayShuf"></table>
+          <p class="lab-note" id="tayShufHow"></p>
+        </div>
+        <div class="card-panel">
+          <div class="panel-h"><h2>Ghép lại: đoán trúng bao nhiêu</h2></div>
+          <p class="lab-note" id="tayMixNote"></p>
+          <table id="tayMix"></table>
+          <p class="lab-note" id="tayMixWhy"></p>
+        </div>
+      </div>
     </section>
   </div>
 </div>
@@ -722,6 +771,7 @@ details.why[open] summary::before { content: "▾ "; }
 <script src="xito-stage.js"></script>
 <script src="xito-sim.js"></script>
 <script src="xito-lab-data.js"></script>
+<script src="xito-tay-data.js"></script>
 <script>
 (function () {
   'use strict';
@@ -1573,10 +1623,115 @@ details.why[open] summary::before { content: "▾ "; }
     }).join('')}</tbody>`;
     const sel = $('runShuffle');
     if (!sel.options.length) sel.innerHTML = keys.map((k) => `<option value="${k}"${k === cfg.shuffle ? ' selected' : ''}>${LAB.shuffles[k]}</option>`).join('');
+    renderTay();
   }
   document.addEventListener('change', (e) => {
-    if (e.target.name === 'labN') { labN = +e.target.value; renderLab(); }
+    if (e.target.name === 'labN' || e.target.name === 'tayN') { labN = +e.target.value; renderLab(); }
+    if (e.target.name === 'tayBot') { tayBot = e.target.value; renderTay(); }
+    if (e.target.name === 'tayUps') { tayUps = +e.target.value; renderTay(); }
   });
+
+  /* ---------- Đoán lá tẩy ---------- */
+  const TAY = window.XitoTayData || null;
+  let tayBot = 'sly', tayUps = 0;
+  function renderTay() {
+    const head = $('tayHead'), grid = $('tayGrid');
+    if (!TAY || !TAY.runs[labN]) { head.hidden = grid.hidden = true; return; }
+    const n = labN, R = TAY.runs[n], pc = X.pct, ST = [0, 1, 2, 3];
+    const seat = R.seats.find((q) => q.style === tayBot) || R.seats[R.seats.length - 1];
+    const stl = X.STYLES[seat.style];
+    const rate = (a, b, min = 200) => (b >= min ? pc(a / b) : b ? '<span class="dim">ít mẫu</span>' : '—');
+    const vn = (x) => String(x).replace('.', ',');
+    const th4 = '<th class="num">Lá 2</th><th class="num">Lá 3</th><th class="num">Lá 4</th><th class="num">Lá 5</th>';
+    const sum = (a) => a.reduce((x, y) => x + y, 0);
+    const U = ST.map((k) => 24 - (k + 2) - (n - 1) * (k + 1));       // số lá chưa lộ khi chưa ai úp
+    // gộp mọi máy trên bàn: tẩy giúp bài thật sự so với con số đếm lá
+    const gAlive = (si) => {
+      let tot = 0, help = 0, cnt = 0;
+      for (const q of R.seats) for (const a of q.alive[si]) { tot += a[0]; help += a[1] + a[2]; cnt += a[5] * a[0]; }
+      return { tot, help: help / tot, count: cnt / tot };
+    };
+    const g2 = gAlive(0), g5 = gAlive(3);
+
+    $('taySegN').innerHTML = segHTML('tayN', n, [[2, '2 người'], [3, '3 người'], [4, '4 người']]);
+    $('tayIntro').innerHTML = `Lá tẩy là lá úp của mỗi nhà. “Tẩy trùng” nghĩa là lá tẩy cùng số với một lá ngửa của chính nhà đó, tức là họ có đôi trở lên mà cả bàn không thấy. Số liệu lấy từ ${fmt(R.hands)} ván có cược trên bàn ${n} người: các máy chơi đúng như trong game, ghế của bạn chơi theo gợi ý, bài ${X.SHUFFLES[TAY.shuffleMode].short}.`;
+
+    $('tayBasis').innerHTML = `
+      <li><b>Đếm lá.</b> Bộ bài chỉ có 24 lá, mỗi số 4 lá. Lá nào bạn đã thấy (bài của bạn, lá ngửa của mọi nhà kể cả nhà đã úp) thì không thể là lá tẩy của ai. <code>khả năng tẩy là số X = số lá X chưa lộ ÷ tổng số lá chưa lộ</code>. Lý do: khi chưa có thông tin gì thêm, lá chưa lộ nào cũng có khả năng như nhau.</li>
+      <li><b>Cách cược.</b> Ai cũng cược theo sức bài thật, tức là đã tính cả lá tẩy. Bài ngửa trông yếu mà vẫn tố hoặc theo cược lớn thì phần mạnh phải nằm ở lá tẩy. Lý do nó không chắc hẳn: có lúc tố láo, và lá A hay K lẻ đôi khi cũng đủ mạnh để tố sớm.</li>
+      <li><b>Ai còn theo.</b> Nhà tẩy xấu úp dần qua từng vòng, nên người còn ngồi lại đã được sàng lọc. Ở lá 5, đếm lá cho trung bình <code>${pc(g5.count)}</code> nhưng thực tế <code>${pc(g5.help)}</code> số nhà còn theo có tẩy giúp bài.</li>
+      <li><b>Xấp bài ván trước.</b> Bài được gom theo từng nhà rồi mới xào. Xào không kỹ thì hai lá nằm liền nhau vẫn hay đi liền nhau, mà bài chia vòng tròn nên hai lá liền nhau rơi vào hai nhà được chia kế nhau.</li>
+      <li><b>Ghép lại.</b> Lấy con số đếm lá làm gốc, nâng lên khi họ tố hoặc theo cược, hạ xuống khi họ chỉ xem. Bảng “Ghép lại” cho biết mỗi cách đoán trúng bao nhiêu.</li>`;
+
+    $('tayCountNote').innerHTML = `Đối thủ ngửa một lá, ví dụ K. Đếm xem còn mấy lá K bạn chưa thấy (nhiều nhất là 3) rồi chia cho số lá chưa lộ. Bảng tính cho bàn ${n} người chưa ai úp.`;
+    $('tayCount').innerHTML = `<thead><tr><th>Lá cùng số chưa lộ</th>${ST.map((k) => `<th class="num">Lá ${k + 2}<small>còn ${U[k]} lá</small></th>`).join('')}</tr></thead><tbody>${[3, 2, 1].map((c) => `
+      <tr><td>Còn ${c} lá</td>${U.map((u) => `<td class="num">${pc(c / u)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    $('tayCountEx').innerHTML = `Đối thủ có nhiều lá ngửa khác số thì cộng lại. Ví dụ ở lá 3 họ ngửa K và 10, bạn chưa thấy lá K nào khác và đã thấy một lá 10: (3 + 2) ÷ ${U[1]} = <b>${pc(5 / U[1])}</b>. Mỗi lá cùng số lộ ra ở nhà khác làm khả năng tẩy trùng số đó giảm đi một phần ba.`;
+
+    $('taySegBot').innerHTML = R.seats.length > 1 ? segHTML('tayBot', seat.style, R.seats.map((q) => [q.style, q.name])) : '';
+    $('taySegUps').innerHTML = segHTML('tayUps', tayUps, [[0, 'Bài ngửa chưa có đôi'], [1, 'Bài ngửa đã có đôi']]);
+    const pd = tayUps;
+    const actRow = (ai) => ST.map((si) => { const c = seat.act[si][ai][pd]; return `<td class="num">${rate(c[0] + c[1], sum(c))}</td>`; }).join('');
+    $('tayActNote').innerHTML = `Tỉ lệ ${seat.name} có <b>tẩy giúp bài</b> (trùng một lá ngửa, hoặc ở lá 5 làm thành sảnh hay thùng) đúng lúc chọn mỗi hành động, khi ${pd ? 'bài ngửa của họ đã có đôi' : 'bài ngửa của họ chưa có đôi'}.`;
+    $('tayAct').innerHTML = `<thead><tr><th>${seat.name}</th>${th4}</tr></thead><tbody>
+      <tr class="sub"><td>Đếm lá dự báo</td>${ST.map((si) => { const a = seat.alive[si][pd]; return `<td class="num">${a[0] >= 200 ? pc(a[5]) : '—'}</td>`; }).join('')}</tr>
+      <tr class="sub"><td>Còn trong ván</td>${ST.map((si) => { const a = seat.alive[si][pd]; return `<td class="num">${rate(a[1] + a[2], a[0])}</td>`; }).join('')}</tr>
+      <tr class="hi"><td>Tố</td>${actRow(2)}</tr>
+      <tr class="hi"><td>Tố lại</td>${actRow(3)}</tr>
+      <tr><td>Theo</td>${actRow(1)}</tr>
+      <tr><td>Xem</td>${actRow(0)}</tr>
+      <tr><td>Úp bỏ</td>${actRow(4)}</tr></tbody>`;
+    const c2 = seat.act[0][0][0], b2 = seat.act[0][2][0], k5 = seat.act[3][1][0];
+    $('tayActWhy').innerHTML = pd
+      ? `Lý do: khi bài ngửa đã có đôi thì riêng phần ngửa đã đủ mạnh để tố, nên cú tố nói rất ít về lá tẩy. Lúc này quay về đếm lá: còn mấy lá cùng số với đôi đó (thành sám) và với các lá lẻ (thành thú).`
+      : `Lý do: ${seat.name} (${stl.label.toLowerCase()}) tố khi tỉ lệ thắng tự tính được cao gấp ${vn(stl.valueRel)} lần mức chia đều trở lên, tố lại khi gấp ${vn(stl.raiseRel)} lần. Bài ngửa chưa có gì mà đạt mức đó thì gần như phải nhờ lá tẩy. Phần còn lại là tố láo: ${pc(stl.bluff)} số lần được xem miễn phí và ${pc(stl.bluff * 0.4)} số lần lẽ ra úp bỏ (vòng cuối không tố láo). Ngược lại, ${seat.name} xem ở lá 2 thì chỉ <b>${rate(c2[0] + c2[1], sum(c2))}</b> là tẩy trùng, còn theo cược ở lá 5 thì <b>${rate(k5[0] + k5[1], sum(k5))}</b> là tẩy đã giúp bài.`;
+
+    const betCls = (si) => { const a = seat.act[si][2][pd], b = seat.act[si][3][pd]; return a.map((x, k) => x + b[k]); };
+    $('tayBetNote').innerHTML = `Mỗi lần ${seat.name} tố hoặc tố lại khi ${pd ? 'bài ngửa đã có đôi' : 'bài ngửa chưa có đôi'}, lá tẩy thật sự là gì. Cột cuối là tố láo hẳn: tẩy từ 9 tới Q và không trùng gì.`;
+    $('tayBet').innerHTML = `<thead><tr><th>Vòng</th><th class="num">Trùng lá ngửa</th><th class="num">Thành sảnh, thùng</th><th class="num">A, K lẻ</th><th class="num">Lá nhỏ lẻ</th></tr></thead><tbody>${ST.map((si) => {
+      const c = betCls(si), t = sum(c);
+      return `<tr><td>Lá ${si + 2}</td>${c.map((x, k) => `<td class="num">${k === 1 && si < 3 ? '—' : rate(x, t)}</td>`).join('')}</tr>`;
+    }).join('')}</tbody>`;
+    $('taySizeNote').innerHTML = `<b>Tố nhỏ hay tố to.</b> Tố nhỏ là tố mức tối thiểu hoặc không quá khoảng nửa hũ. Các máy tố láo luôn đặt cỡ nửa hũ, còn tố lấy tiền thì đặt từ nửa hũ tới gần đầy hũ, nên cú tố to hiếm khi là tố láo. Bảng ghi tỉ lệ tẩy giúp bài.`;
+    $('taySize').innerHTML = `<thead><tr><th>Mở cược</th>${th4}</tr></thead><tbody>${[['Tố nhỏ', 0], ['Tố to', 1]].map(([lab, z]) => `
+      <tr><td>${lab}</td>${ST.map((si) => { const c = seat.betSize[si][z][pd]; return `<td class="num">${rate(c[1], c[0])}</td>`; }).join('')}</tr>`).join('')}</tbody>`;
+    $('tayUpNote').innerHTML = `<b>Ở lá 2, ngửa lá nào mà tố.</b> Lá ngửa càng nhỏ mà vẫn tố thì tẩy càng dễ trùng, vì lá nhỏ lẻ không đủ sức để tố.`;
+    $('tayUp').innerHTML = `<thead><tr><th>Lá ngửa</th>${X.RANKS.map((r) => `<th class="num">${r}</th>`).join('')}</tr></thead><tbody>
+      <tr><td>Tẩy trùng</td>${seat.bet2.map((c) => `<td class="num">${rate(c[1], c[0])}</td>`).join('')}</tr>
+      <tr><td>Tẩy A, K lẻ</td>${seat.bet2.map((c) => `<td class="num">${rate(c[2], c[0])}</td>`).join('')}</tr></tbody>`;
+
+    const SH = TAY.shuffle[n], base = SH.perfect.next;
+    const seatNext = n === 2 ? 'Bác Sáu' : n === 3 ? 'Chị Tư' : 'Anh Ba';
+    $('tayShufNote').innerHTML = `Ván trước, lá nằm ngay dưới lá tẩy của bạn trong xấp bài gom lại (tức là lá mà nhà đó nhận liền sau nó) có thành lá tẩy của nhà được chia kế bạn (${seatNext}) hay không. Đoán mò chỉ trúng <b>${pc(base)}</b>.`;
+    $('tayShuf').innerHTML = `<thead><tr><th>Kiểu xào</th><th class="num">Đúng là lá đó</th><th class="num">So với đoán mò</th></tr></thead><tbody>${Object.keys(SH).map((k) => `
+      <tr class="${k === cfg.shuffle ? 'hi' : ''}"><td>${X.SHUFFLES[k].label}</td><td class="num">${pc(SH[k].next)}</td><td class="num">× ${vn((SH[k].next / base).toFixed(1))}</td></tr>`).join('')}</tbody>`;
+    $('tayShufHow').innerHTML = `Lý do: xào kiểu lùa hai nửa vào nhau chỉ chèn thêm lá vào giữa chứ không đảo thứ tự, mỗi lần xào hai lá liền nhau còn dính nhau khoảng một nửa số lần. Cách dùng: khi lật bài, nhớ bài mỗi nhà theo thứ tự tẩy rồi lá ngửa 1, 2, 3, 4. Ván sau bạn cầm tẩy là một lá trong đó thì lá đứng liền sau nó dễ là tẩy của ${seatNext}. Tương tự, lá đứng liền trước lá ngửa đầu tiên của bạn dễ là tẩy của nhà chia cuối. Dòng vàng là kiểu xào bạn đang chọn trong Cài đặt.`;
+
+    // ghép lại: gộp mọi máy trên bàn
+    const mix = ST.map((si) => {
+      let tot = 0, yes = 0, ruleOk = 0, rk = 0, rkBase = 0, rkTip = 0, rd = 0, rdYes = 0, rdRank = 0;
+      for (const q of R.seats) {
+        const t = q.rule[si];
+        for (let a = 0; a < 2; a++) for (let c = 0; c < 2; c++) { tot += t[a][c][0] + t[a][c][1]; yes += t[a][c][1]; ruleOk += t[a][c][a]; }
+        rk += q.rank[si][0]; rkBase += q.rank[si][1]; rkTip += q.rank[si][2];
+        rd += q.reader[si][0]; rdRank += q.reader[si][1]; rdYes += q.reader[si][3];
+      }
+      return { tot, major: Math.max(yes, tot - yes), ruleOk, rk, rkBase, rkTip, rd, rdYes, rdRank };
+    });
+    const mrow = (lab, f, cls = '') => `<tr class="${cls}"><td>${lab}</td>${mix.map((m) => `<td class="num">${f(m)}</td>`).join('')}</tr>`;
+    $('tayMixNote').innerHTML = `Đoán vào cuối mỗi vòng cược, cho từng máy còn trong ván, khi bạn cũng còn theo. Gộp cả ${R.seats.length > 1 ? R.seats.length + ' máy' : 'máy'} trên bàn ${n} người.`;
+    $('tayMix').innerHTML = `<thead><tr><th>Cách đoán</th>${th4}</tr></thead><tbody>
+      <tr class="grp"><td colspan="5">Tẩy có giúp bài hay không</td></tr>
+      ${mrow('Luôn nói theo số đông', (m) => rate(m.major, m.tot))}
+      ${mrow('Mẹo: ai đã tố thì có', (m) => rate(m.ruleOk, m.tot))}
+      ${mrow('Máy đọc bài', (m) => rate(m.rdYes, m.rd), 'hi')}
+      <tr class="grp"><td colspan="5">Đúng số của lá tẩy</td></tr>
+      ${mrow('Số còn nhiều lá chưa lộ nhất', (m) => rate(m.rkBase, m.rk))}
+      ${mrow('Mẹo: ai đã tố thì tẩy trùng lá ngửa', (m) => rate(m.rkTip, m.rk))}
+      ${mrow('Máy đọc bài', (m) => rate(m.rdRank, m.rd), 'hi')}</tbody>`;
+    const cal = R.calib[9], calLo = R.calib[0];
+    $('tayMixWhy').innerHTML = `“Máy đọc bài” thử lần lượt từng lá chưa lộ làm tẩy, tính xem với lá đó thì máy kia có cược như đã cược không, rồi chọn lá khớp nhất. Đây là mức trần của việc đọc bài bằng căn cứ 1 đến 3 (${fmt(R.readerHands)} ván). Khi nó nói chắc từ 90% trở lên thì đúng <b>${rate(cal[1], cal[0])}</b>, khi nói dưới 10% thì chỉ <b>${rate(calLo[1], calLo[0])}</b> là có. Lý do không thể đúng hết: nhiều lá tẩy khác nhau dẫn tới cùng một cách cược, và tố láo cố ý làm nhiễu.`;
+  }
 
   let worker = null, running = false;
   function runLab() {
