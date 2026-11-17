@@ -68,36 +68,121 @@ console.log('Tất cả test đều qua');
   console.log('Xào bài và gom bài: OK');
 }
 
-// đoán lá tẩy: phân loại lá tẩy, mô hình "máy sẽ cược gì nếu tẩy là lá này", và một lượt đo nhỏ
+// đoán lá tẩy: phân loại lá tẩy, bộ đọc cách cược trong engine, người lão luyện, và một lượt đo nhỏ
 {
   const T = require('../sim/run-tay.js');
+  const S = require('../xito-sim.js');
   const c = (r, s) => r * 4 + s;                      // r: 0..5 = 9..A
   assert.strictEqual(T.holeClass([c(4, 0), c(4, 1)]), 0, 'tẩy K, ngửa K → trùng');
   assert.strictEqual(T.holeClass([c(5, 0), c(4, 1)]), 2, 'tẩy A lẻ');
   assert.strictEqual(T.holeClass([c(1, 0), c(4, 1)]), 3, 'tẩy 10 lẻ');
   assert.strictEqual(T.holeClass([c(0, 0), c(1, 1), c(2, 2), c(3, 3), c(4, 0)]), 1, 'tẩy 9 làm thành sảnh');
   assert.strictEqual(T.holeClass([c(0, 0), c(1, 1), c(2, 2), c(3, 3), c(5, 0)]), 3, 'tẩy 9, ngửa 10 J Q A: không thành sảnh, là lá nhỏ lẻ');
-  const g = new X.Game({ players: [{ name: 'Bạn', style: 'sly', stack: 1000 }, { name: 'Anh Ba', style: 'tight', stack: 1000 }, { name: 'Chị Tư', style: 'loose', stack: 1000 }], ante: 10 });
-  let checked = 0;
-  for (let h = 0; h < 6; h++) {
+  assert(X.holeHelps([c(4, 0), c(4, 1)]) && !X.holeHelps([c(5, 0), c(4, 1)]), 'tẩy giúp bài khi trùng số lá ngửa');
+
+  // hàm chấm điểm nhanh phải giống hệt cách tính gốc
+  {
+    const rng = S.mulberry32(11);
+    for (const k of Object.keys(X.RULESETS)) {
+      const str = X.RULESETS[k].strength;
+      for (let it = 0; it < 20000; it++) {
+        const h = X.shuffle(X.newDeck(), rng).slice(0, 1 + ((rng() * 5) | 0));
+        assert.strictEqual(X.scoreOf(h, str), X.scoreOfSlow(h, str), 'điểm bài tính nhanh khác cách tính gốc');
+      }
+    }
+  }
+
+  // mô hình "máy thường sẽ cược gì": xác suất các hành động cộng lại bằng 1
+  for (const key of ['tight', 'loose', 'sly', 'coach']) {
+    const st = X.STYLES[key];
+    for (const ctx of [{ toCall: 0, canRaise: true, n: 3, last: false, potOdds: 0, press: 0 },
+      { toCall: 40, canRaise: true, n: 2, last: false, potOdds: 0.33, press: 1 },
+      { toCall: 300, canRaise: false, n: 1, last: true, potOdds: 0.45, press: 0.8 }]) {
+      for (const e of [0.05, 0.25, 0.4, 0.6, 0.9]) {
+        const pr = X.simpleProbs(st, ctx, e, 0.03);
+        const total = pr.value + pr.bluff + pr.call + pr.check + pr.fold;
+        assert(Math.abs(total - 1) < 1e-9, 'xác suất các hành động phải cộng lại bằng 1');
+        if (ctx.toCall === 0) assert(pr.call === 0 && pr.fold === 0); else assert(pr.check === 0);
+        if (!ctx.canRaise) assert(pr.value === 0 && pr.bluff === 0, 'không tố được thì xác suất tố bằng 0');
+      }
+    }
+  }
+
+  // bàn 4 người như trong game: Anh Ba lão luyện, có theo dõi cách cược
+  const rng = S.mulberry32(7);
+  const g = new X.Game({ players: [{ name: 'Bạn', human: true, style: 'coach', stack: 1000 }, { name: 'Anh Ba', style: 'pro', stack: 1000 },
+    { name: 'Chị Tư', style: 'loose', stack: 1000 }, { name: 'Bác Sáu', style: 'sly', stack: 1000 }], ante: 10, rng, shuffleMode: 'real3' });
+  assert(g.useReads, 'bàn có người lão luyện thì tự bật đọc bài');
+  g.readAll = true;
+  let checked = 0, proActs = 0, proPot = 0;
+  for (let h = 0; h < 25; h++) {
     for (const p of g.players) p.stack = 1000;
     g.startHand();
     while (g.phase !== 'done') {
-      if (g.phase === 'between') { g.proceed(); continue; }
-      const i = g.toAct, L = g.legal(i);
-      const lik = T.actionLik(g, i, g.players[i].cards[0], Math.random);
-      const total = lik.raise + lik.call + lik.check + lik.fold;
-      assert(Math.abs(total - 1) < 1e-9, 'xác suất các hành động phải cộng lại bằng 1');
-      assert(Object.values(lik).every((x) => x >= 0 && x <= 1));
-      if (L.toCall === 0) assert(lik.call === 0 && lik.fold === 0); else assert(lik.check === 0);
+      if (g.phase === 'between') {
+        for (const v of g.players) for (const t of g.players) {       // ai đoán ai cũng phải ra phân phối hợp lệ
+          if (v.id === t.id || v.folded || t.folded) continue;
+          const r = X.readOf(g, v.id, t.id);
+          assert(r && Math.abs(r.byRank.reduce((x, y) => x + y, 0) - 1) < 1e-9 && r.helps >= 0 && r.helps <= 1, 'đoán tẩy phải là phân phối xác suất');
+        }
+        g.proceed(); continue;
+      }
+      const i = g.toAct, L = g.legal(i), p = g.players[i];
+      if (p.style === 'pro') {
+        const pr = X.proProbs(g, i, p.cards[0]);
+        assert(Math.abs(pr.raise + pr.call + pr.check + pr.fold - 1) < 1e-9, 'xác suất hành động của người lão luyện phải cộng lại bằng 1');
+        if (L.toCall === 0) assert(pr.call === 0 && pr.fold === 0); else assert(pr.check === 0);
+      }
+      const a = X.botDecide(g, i, rng);
+      if (p.style === 'pro') {
+        proActs++;
+        assert(['raise', 'call', 'check', 'fold'].includes(a.type));
+        if (L.toCall === 0) assert(a.type !== 'fold', 'được xem miễn phí thì không úp');
+        if (a.type === 'raise' && L.toCall === 0) {      // tố mở: đúng cỡ cả hũ (hoặc tất tay khi gần hết chip)
+          const potBet = Math.max(g.minBet, Math.round(g.pot / 5) * 5);
+          assert(a.raiseTo === Math.min(potBet, L.maxRaiseTo) || a.raiseTo === L.maxRaiseTo, 'người lão luyện tố cả hũ');
+          proPot++;
+        }
+      }
+      g.act(i, a.type, a.raiseTo);
+      assert(!g.readError, 'đọc bài không được lỗi: ' + (g.readError && g.readError.stack));
+      assert(g.reads, 'vẫn đang theo dõi cách cược');
       checked++;
-      const a = X.botDecide(g, i); g.act(i, a.type, a.raiseTo);
     }
   }
-  const st = T.runBetting({ n: 3, hands: 40, readerHands: 5, seed: 1 });
+  assert(proActs > 20 && proPot > 5, 'người lão luyện phải có tố mở trong 25 ván');
+
+  // huấn luyện viên: có đọc cách cược thì trả thêm con số "chỉ nhìn lá ngửa" và dự đoán lá tẩy từng đối thủ
+  {
+    for (const p of g.players) p.stack = 1000;
+    g.startHand();
+    while (g.phase !== 'done' && g.toAct !== 0) { if (g.phase === 'between') { g.proceed(); continue; } const a = X.botDecide(g, g.toAct, rng); g.act(g.toAct, a.type, a.raiseTo); }
+    if (g.phase === 'betting' && g.toAct === 0) {
+      const a = X.analyze(g, 0, 800);
+      assert(a.read === true && a.equity >= 0 && a.equity <= 1 && a.equityFlat >= 0 && a.equityFlat <= 1);
+      assert(a.oppInfo.every((o) => o.guess && o.guess.byRank.length === 6));
+    }
+  }
+  // không bật đọc bài thì huấn luyện viên tính như cũ
+  {
+    const g2 = new X.Game({ players: [{ name: 'Bạn', human: true, stack: 500 }, { name: 'B', style: 'sly', stack: 500 }], ante: 10 });
+    assert(!g2.useReads);
+    g2.startHand();
+    while (g2.phase !== 'done' && g2.toAct !== 0) { if (g2.phase === 'between') { g2.proceed(); continue; } const a = X.botDecide(g2, g2.toAct); g2.act(g2.toAct, a.type, a.raiseTo); }
+    if (g2.phase === 'betting') { const a = X.analyze(g2, 0, 500); assert(a.read === false && a.equityFlat === a.equity && a.oppInfo[0].guess === null); }
+  }
+
+  const st = T.runBetting({ n: 3, hands: 40, seed: 1 });
   assert.strictEqual(st.hands, 40);
   assert.strictEqual(st.alive[1][0][0][0] + st.alive[1][0][1][0], 40, 'đầu ván máy nào cũng còn trong ván');
+  assert(Math.abs(st.net.reduce((x, y) => x + y[0], 0)) < 1e-6, 'tổng lời lỗ cả bàn bằng 0');
+  const st4 = T.runBetting({ n: 4, hands: 30, seed: 2 });
+  assert(st4.proRead[0][0][0] > 0, 'người lão luyện có đoán tẩy của ghế Bạn');
+  assert(Math.abs(st4.net.reduce((x, y) => x + y[0], 0)) < 1e-6);
+  const ses = T.runSessions({ n: 4, sessions: 2, len: 20, marks: [10, 20], seed: 5 });
+  assert(ses.length === 2 && ses[0].length === 2 && ses[0][1].length === 4);
+  assert(ses.every((row) => row.every((m) => m.reduce((x, y) => x + y, 0) === 0)), 'lời lỗ cộng dồn cả bàn bằng 0');
   const sh = T.runShuffle({ n: 4, hands: 400, seed: 3 });
   assert(sh.cutonly.next > 0.99 && sh.perfect.next < 0.15, 'chỉ kinh thì thứ tự giữ nguyên, trộn kỹ thì không');
-  console.log(`Đoán lá tẩy: OK (${checked} quyết định)`);
+  console.log(`Đoán lá tẩy và người lão luyện: OK (${checked} quyết định)`);
 }

@@ -28,13 +28,13 @@ Với Apple ID miễn phí, app hết hạn sau 7 ngày, chỉ cần cài lại 
 
 | File | Nội dung |
 |---|---|
-| `xito-engine.js` | Luật chơi, so bài, chia hũ phụ, xác suất, AI |
+| `xito-engine.js` | Luật chơi, so bài, chia hũ phụ, xác suất, AI. Có bộ đọc cách cược (`game.reads`): mỗi lần một nhà hành động, độ tin về lá tẩy của nhà đó được cập nhật. Huấn luyện viên dùng nó để tính tỉ lệ thắng; Anh Ba (kiểu `pro`, lão luyện) dùng nó để quyết định tố cả hũ, theo hay bỏ |
 | `xito-fx.js` | Nặn bài, âm thanh |
 | `xito-stage.js` | Bàn chơi 3D (three.js): bàn, dealer, lá bài, chip, máy quay |
 | `assets/dealer/` | Hai ảnh dealer đã tách nền (góc cao cho bàn chơi, chính diện cho sảnh). Ảnh do AI tạo, không phải người thật |
 | `assets/players/` | Ảnh ba người chơi ngồi sẵn trên ghế, đã tách nền, mỗi người chụp đúng hướng ngồi của ghế mình (Chị Tư và Bác Sáu ở hai góc bàn, Anh Ba ở đầu bàn). Mỗi người hai lớp: lớp trên bàn (thân, tay) và lớp `-low` dưới gầm bàn (chân, ghế) để cái bàn 3D che đúng chỗ. Ảnh do AI tạo, không phải người thật |
 | `xito-sim.js`, `xito-lab-data.js` | Mô phỏng 1 triệu ván và dữ liệu kinh nghiệm |
-| `sim/run-tay.js`, `xito-tay-data.js` | Đo cách đoán lá tẩy: cho các máy chơi ván có cược thật rồi thống kê lá tẩy theo lá ngửa, cách cược và kiểu xào bài. Chạy lại bằng `node sim/run-tay.js` |
+| `sim/run-tay.js`, `xito-tay-data.js` | Đo cách đoán lá tẩy: cho các máy chơi ván có cược thật rồi thống kê lá tẩy theo lá ngửa, cách cược và kiểu xào bài; kèm lời lỗ của từng ghế và các phiên chơi dài ở bàn 4 người (bàn có Anh Ba). Chạy lại bằng `node sim/run-tay.js` (khoảng một giờ trên máy 4 nhân) |
 | `index.html` | Giao diện (dùng chung cho web, PWA và app) |
 | `scripts/build-web.mjs` | Đóng gói vào `www/` (font offline, manifest, service worker) |
 | `scripts/make-icons.mjs` | Vẽ icon và màn hình khởi động |
