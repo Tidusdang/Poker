@@ -4,6 +4,7 @@
 //   Dùng: node sim/run-tay.js [số ván mỗi cấu hình = 200000] [số phiên 200 ván ở bàn 4 người = 400] [số ván đo xào bài = 400000]
 //   Chỉ chạy lại phần phiên chơi dài, giữ nguyên các số liệu khác: node sim/run-tay.js phien [số phiên = 400]
 // Ghế 0 là "Bạn", chơi theo đúng gợi ý của huấn luyện viên (có tính cách cược). Các ghế còn lại là máy như trong game.
+// Vòng cược đầu là lúc mỗi nhà có 3 lá (1 tẩy, 2 ngửa), nên các bảng theo vòng chỉ có số liệu ở lá 3, 4, 5 (chỉ số 1..3).
 // "Máy đọc bài" là bộ đọc cách cược trong xito-engine.js (game.reads), nhìn từ ghế "Bạn".
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 const fs = require('fs');
@@ -35,7 +36,7 @@ function newStats(n) {
     betSize: zeros(n, 4, 2, 2, 2), // tố mở: [ghế][lá][nhỏ (mức tối thiểu hoặc ≤ 0,58 hũ) / to][bài ngửa chưa đôi / có đôi][tổng, tẩy giúp bài]
     alive: zeros(n, 4, 2, 6),      // đầu mỗi vòng, nhà còn trong ván: [bài ngửa chưa đôi / có đôi][tổng, hit, sf, high, low, tổng xác suất theo đếm lá]
     aliveRank: zeros(n, 4, 6),     // đầu mỗi vòng: số của lá tẩy (9..A) ở nhà còn trong ván
-    bet2: zeros(n, 6, 3),          // tố mở ở lá 2 theo số của lá ngửa: [tổng, tẩy trùng, tẩy A/K lẻ]
+    betUp: zeros(n, 6, 3),         // tố mở ở vòng cược đầu (3 lá) khi hai lá ngửa chưa thành đôi, theo lá ngửa to nhất: [tổng, tẩy trùng, tẩy A/K lẻ]
     rule: zeros(n, 4, 2, 2, 2),    // cuối vòng: [ghế][lá][đã từng tố][đã từng theo][tẩy giúp bài]
     rank: zeros(n, 4, 3),          // cuối vòng: [lượt, đoán số theo đếm lá đúng, đoán số theo mẹo đúng]
     reader: zeros(n, 4, 9),        // cuối vòng, máy đọc từ ghế Bạn: [lượt, đúng số, Σ P(số thật), đúng có/không, Σ Brier, đếm lá đúng số, mẹo đúng số, mẹo đúng có/không, số lần tẩy giúp bài]
@@ -141,7 +142,7 @@ function runBetting({ n, hands, seed }) {
           const to = Math.max(L.minRaiseTo, Math.min(Math.round(d.raiseTo), L.maxRaiseTo));
           const small = to - game.currentBet <= Math.max(game.minBet, 0.58 * game.pot) ? 0 : 1;
           const b = st.betSize[i][si][small][pd]; b[0]++; if (cls <= 1) b[1]++;
-          if (si === 0) { const b2 = st.bet2[i][X.rankOf(p.cards[1])]; b2[0]++; if (cls === 0) b2[1]++; else if (cls === 2) b2[2]++; }
+          if (si === 1 && !pd) { const b2 = st.betUp[i][Math.max(X.rankOf(p.cards[1]), X.rankOf(p.cards[2]))]; b2[0]++; if (cls === 0) b2[1]++; else if (cls === 2) b2[2]++; }
         }
         if (lastAggr[i] && L.toCall > 0) { const f = st.faceRaise[i][si][lastRaiser === 0 ? 0 : 1]; f[0]++; if (d.type === 'fold') f[1]++; }
         if (d.type === 'raise') aggr[i] = 1; else if (d.type === 'call') called[i] = 1;
@@ -189,30 +190,33 @@ function runSessions({ n, sessions, len = 200, marks = [50, 100, 200], seed }) {
   return out;
 }
 
-/* Xào bài: lá tẩy ván này liên quan gì tới xấp bài gom lại của ván trước (ai cũng theo tới lá 5). */
+/* Xào bài: lá tẩy ván này liên quan gì tới xấp bài gom lại của ván trước (ai cũng theo tới lá 5, rút bài đúng luật).
+ * Lá tẩy là lá rút ở vòng 2, nên tẩy của hai nhà rút liền nhau là hai lá nằm liền nhau trong cỗ bài. */
 function runShuffle({ n, hands, seed }) {
   const out = {};
+  const S0 = X.RULESETS.standard.strength;
   let s = seed;
   for (const key of Object.keys(X.SHUFFLES)) {
     const rng = S.mulberry32(s++);
-    let prev = null, cases = 0, next = 0, either = 0, pairUp = 0;
+    let prev = null, first = 0, cases = 0, next = 0, either = 0, pairUp = 0;
     const idx = new Int8Array(24);
     for (let h = 0; h < hands; h++) {
       const deck = X.shuffleBy(prev, key, rng);
       if (prev) {
         for (let k = 0; k < 24; k++) idx[prev[k]] = k;
-        for (let p = 0; p + 1 < n; p++) {       // tẩy của hai ghế liền nhau
-          const a = idx[deck[p]], b = idx[deck[p + 1]];
+        for (let p = 0; p + 1 < n; p++) {       // tẩy của hai nhà rút liền nhau (vòng 2 nằm ở vị trí n .. 2n-1)
+          const a = idx[deck[n + p]], b = idx[deck[n + p + 1]];
           cases++;
           if (b === (a + 1) % 24) next++;
           if (b === (a + 1) % 24 || b === (a + 23) % 24) either++;
         }
-        for (let p = 0; p < n; p++) if (X.rankOf(deck[p]) === X.rankOf(deck[n + p])) pairUp++;
+        for (let p = 0; p < n; p++) if (X.rankOf(deck[p]) === X.rankOf(deck[n + p])) pairUp++;   // lá ngửa đầu và lá tẩy của cùng một nhà
       }
-      const hs = Array.from({ length: n }, () => []);
-      let top = 0;
-      for (let r = 0; r < 5; r++) for (let p = 0; p < n; p++) hs[p].push(deck[top++]);
-      prev = X.collect(hs, deck.slice(top));
+      const hs = X.dealAll(deck, n, first);
+      let best = -1, w = 0;
+      for (let p = 0; p < n; p++) { const sc = X.scoreOf(hs[p], S0); if (sc > best) { best = sc; w = p; } }
+      first = (((w + X.DIR) % n) + n) % n;
+      prev = X.collect(hs.map(X.drawnOrder), deck.slice(5 * n));
     }
     out[key] = { next: next / cases, either: either / cases, pairUp: pairUp / ((hands - 1) * n) };
   }
@@ -234,13 +238,13 @@ if (!isMainThread) {
   (async () => {
     const file = path.join(__dirname, '..', 'xito-tay-data.js');
     const out = ONLY_SES ? require(file) : { generated: new Date().toISOString().slice(0, 10), hands: N, shuffleHands: NS, shuffleMode: 'real3',
-      acts: ACTS, classes: CLS, runs: {}, shuffle: {} };
+      streets: [3, 4, 5], acts: ACTS, classes: CLS, runs: {}, shuffle: {} };
     let seed = 9100;
     for (const n of ONLY_SES ? [] : [4, 3, 2]) {
       const t = Date.now();
       const parts = await Promise.all(Array.from({ length: THREADS }, (_, k) => job({ kind: 'bet', n, seed: seed++,
         hands: Math.floor(N / THREADS) + (k < N % THREADS ? 1 : 0) })));
-      const st = parts.reduce((a, b) => { a.hands += b.hands; for (const f of ['act', 'betSize', 'alive', 'aliveRank', 'bet2', 'rule', 'rank', 'reader', 'calib', 'net', 'end', 'proRead', 'faceRaise']) addInto(a[f], b[f]); return a; });
+      const st = parts.reduce((a, b) => { a.hands += b.hands; for (const f of ['act', 'betSize', 'alive', 'aliveRank', 'betUp', 'rule', 'rank', 'reader', 'calib', 'net', 'end', 'proRead', 'faceRaise']) addInto(a[f], b[f]); return a; });
       const bots = BOTS.slice(BOTS.length - (n - 1));
       const netOf = (k) => { const m = st.net[k][0] / st.hands; return [r4(m), r4(Math.sqrt(Math.max(0, st.net[k][1] / st.hands - m * m) / st.hands))]; };   // [chip mỗi ván, sai số chuẩn]
       out.runs[n] = {
@@ -248,7 +252,7 @@ if (!isMainThread) {
         you: { net: netOf(0), end: st.end[0], read: st.proRead[0] },
         seats: bots.map((b, k) => ({ name: b.name, style: b.style,
           act: st.act[k + 1], betSize: st.betSize[k + 1], rule: st.rule[k + 1], rank: st.rank[k + 1],
-          aliveRank: st.aliveRank[k + 1], bet2: st.bet2[k + 1],
+          aliveRank: st.aliveRank[k + 1], betUp: st.betUp[k + 1],
           alive: st.alive[k + 1].map((row) => row.map((a) => a.slice(0, 5).concat(r4(a[0] ? a[5] / a[0] : 0)))),
           reader: st.reader[k + 1].map((a) => a.map((x, j) => (j === 2 || j === 4 ? r4(x) : x))),
           net: netOf(k + 1), end: st.end[k + 1], faceRaise: st.faceRaise[k + 1], read: st.proRead[k + 1] })),

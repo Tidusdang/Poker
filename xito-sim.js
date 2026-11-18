@@ -1,6 +1,7 @@
 /* Xì tố 24 — phòng thí nghiệm: chạy hàng triệu ván để rút kinh nghiệm.
  * Mỗi ván: n người, ai cũng theo tới lá thứ 5 rồi lật bài (đo sức mạnh thuần của lá bài).
- * Bộ bài mang sang ván sau: gom theo từng nhà → xào theo kiểu đã chọn → chia vòng mỗi nhà 1 lá.
+ * Bộ bài mang sang ván sau: gom theo từng nhà → xào theo kiểu đã chọn → rút đúng luật trong game
+ * (người ngồi sau người thắng rút đầu; từ lá thứ 3, ai có lá ngửa to nhất vòng trước rút đầu; xem X.dealAll).
  * Dùng được trong Node (require) và trong Web Worker (importScripts sau xito-engine.js).
  */
 (function (root) {
@@ -37,16 +38,15 @@
     const strengths = RULE_KEYS.map((k) => X.RULESETS[k].strength);
     for (let h = 0; h < count; h++) {
       const deck = X.shuffleBy(state.prevOrder, shuffleKey, rng);
-      // chia vòng: lá 1 cho cả bàn, rồi lá 2, ...
-      const hands = Array.from({ length: n }, () => []);
-      let top = 0;
-      for (let r = 0; r < 5; r++) for (let p = 0; p < n; p++) hands[p].push(deck[top++]);
+      // rút bài đúng luật; hands[p] = [tẩy, ngửa 1, ngửa 2, ngửa 3, ngửa 4]
+      const hands = X.dealAll(deck, n, state.first || 0);
+      const top = 5 * n;
 
       // hiệu ứng ván trước: theo dõi đúng các lá đã nằm chung một nhà ván trước
       if (state.clumps && state.clumps.length) {
         const seatOf = state.seatOf || (state.seatOf = new Int8Array(24));
         seatOf.fill(-1);
-        for (let k = 0; k < top; k++) seatOf[deck[k]] = k % n;
+        for (let p = 0; p < n; p++) for (let k = 0; k < 5; k++) seatOf[hands[p][k]] = p;
         for (const g of state.clumps) {
           const per = new Int8Array(n);
           for (const c of g.cards) { const s = seatOf[c]; if (s >= 0) per[s]++; }
@@ -70,6 +70,7 @@
       for (let ri = 0; ri < RULE_KEYS.length; ri++) {
         let best = -1, w = -1;
         for (let p = 0; p < n; p++) { const s = X.scoreOf(hands[p], strengths[ri]); if (s > best) { best = s; w = p; } }
+        if (ri === 0) state.first = (((w + X.DIR) % n) + n) % n;      // ván sau: người ngồi sau người thắng (luật gốc) rút đầu
         const st = stats.start[ri];
         for (let p = 0; p < n; p++) {
           const sc = X.startClass(hands[p][0], hands[p][1]);
@@ -89,8 +90,8 @@
         for (const card of hands[p]) by[X.rankOf(card)].push(card);
         for (let r = 0; r < 6; r++) if (by[r].length >= 2) state.clumps.push({ cards: by[r], holder: p });
       }
-      // gom bài: các nhà theo thứ tự ghế, phần bài thừa ở dưới
-      state.prevOrder = X.collect(hands, deck.slice(top));
+      // gom bài: các nhà theo thứ tự ghế, mỗi nhà giữ thứ tự lá như lúc rút, phần bài thừa ở dưới
+      state.prevOrder = X.collect(hands.map(X.drawnOrder), deck.slice(top));
       stats.hands++;
     }
     return stats;
@@ -113,9 +114,10 @@
   }
 
   /* Dự báo cho ván sắp chia, CHỈ dựa vào những lá người chơi đã thấy ván trước (visible):
-   * các lá cùng số nằm chung một nhà (một khối khi gom) sẽ rơi thế nào sau khi xào + chia vòng.
+   * các lá cùng số nằm chung một nhà (một khối khi gom) sẽ rơi thế nào sau khi xào + rút bài đúng luật
+   * (first: ghế rút đầu ván tới, tức người ngồi sau người thắng; giả định không ai bỏ bài).
    * So sánh với trộn kỹ. Trả về mỗi nhóm: rải mỗi nhà ≤1 lá / có nhà nhận ≥2 lá / mình (ghế 0) nhận ≥2 lá. */
-  function forecast(prevOrder, prevBlocks, shuffleKey, n, visible, iters = 4000, rng = Math.random) {
+  function forecast(prevOrder, prevBlocks, shuffleKey, n, visible, iters = 4000, rng = Math.random, first = 0) {
     const groups = [];
     for (const b of prevBlocks) {
       const byRank = {};
@@ -128,8 +130,9 @@
       const seatOf = new Int8Array(24);
       for (let it = 0; it < iters; it++) {
         const deck = X.shuffleBy(prevOrder, key, rng);
+        const hands = X.dealAll(deck, n, first);
         seatOf.fill(-1);
-        for (let k = 0; k < 5 * n && k < 24; k++) seatOf[deck[k]] = k % n;
+        for (let p = 0; p < n; p++) for (let k = 0; k < 5; k++) seatOf[hands[p][k]] = p;
         groups.forEach((g, gi) => {
           const per = new Int8Array(n);
           for (const c of g.cards) { const s = seatOf[c]; if (s >= 0) per[s]++; }

@@ -342,10 +342,39 @@
     return RANKS[ra] + '-' + RANKS[rb] + (suited ? ' đồng chất' : ' khác chất');
   }
 
+  /* ----------------------------- Thứ tự rút bài -----------------------------
+   * Ghế đánh số theo chiều kim đồng hồ nhìn từ trên xuống; lượt đi NGƯỢC chiều kim đồng hồ (DIR = -1),
+   * tức người "ngồi sau" một nhà là ghế có số nhỏ hơn 1 (ghế 0 → ghế cuối).
+   *  1. Ván mới: người ngồi sau người thắng ván trước rút đầu tiên, người thắng rút cuối.
+   *  2. Vòng 1 mỗi nhà rút một lá NGỬA; vòng 2 mỗi nhà rút lá TẨY (úp), cùng thứ tự.
+   *  3. Chưa tố: rút tiếp lá ngửa thứ hai rồi mới vào vòng cược đầu (3 lá).
+   *  4. Từ lá thứ 3 trở đi, ai có lá ngửa TO NHẤT trong vòng rút lá ngửa liền trước thì rút đầu (chỉ so số, không so chất;
+   *     bằng nhau thì ai rút trước ở vòng đó được ưu tiên). Nhà đó đã úp bỏ thì vẫn tính từ chỗ họ: người còn bài kế tiếp rút đầu. */
+  const DIR = -1;
+  // Bốc đủ 5 lá cho n nhà khi không ai bỏ bài. Trả về bài từng ghế dạng [tẩy, ngửa 1, ngửa 2, ngửa 3, ngửa 4].
+  function dealAll(deck, n, first = 0, dir = DIR) {
+    const hands = Array.from({ length: n }, () => new Array(5));
+    const order = new Array(n);
+    for (let k = 0; k < n; k++) order[k] = (((first + dir * k) % n) + n) % n;
+    let top = 0;
+    for (let k = 0; k < n; k++) hands[order[k]][1] = deck[top++];
+    for (let k = 0; k < n; k++) hands[order[k]][0] = deck[top++];
+    for (let r = 2, prev = 1; r < 5; prev = r++) {
+      let lead = 0, best = -1;
+      for (let k = 0; k < n; k++) { const rk = hands[order[k]][prev] >> 2; if (rk > best) { best = rk; lead = k; } }
+      const start = order[lead];
+      for (let k = 0; k < n; k++) order[k] = (((start + dir * k) % n) + n) % n;
+      for (let k = 0; k < n; k++) hands[order[k]][r] = deck[top++];
+    }
+    return hands;
+  }
+  // Thứ tự các lá của một nhà đúng như lúc rút: ngửa 1, tẩy, ngửa 2, ... (dùng khi gom bài)
+  const drawnOrder = (h) => (h.length < 2 ? h.slice() : [h[1], h[0], ...h.slice(2)]);
+
   /* ----------------------------- Ván chơi ----------------------------- */
 
   class Game {
-    constructor({ players, ante = 10, rules = 'standard', rng = Math.random, shuffleMode = 'perfect', reads }) {
+    constructor({ players, ante = 10, rules = 'standard', rng = Math.random, shuffleMode = 'perfect', reads, dir = DIR }) {
       this.players = players.map((p, i) => ({
         id: i, name: p.name, human: !!p.human, style: p.style || null,
         stack: p.stack, cards: [], folded: true, out: false, allIn: false,
@@ -357,6 +386,11 @@
       this.prevOrder = null;      // thứ tự bộ bài gom lại sau ván trước (lá trên cùng trước)
       this.prevGather = null;     // các khối bài theo nhà của ván trước, để huấn luyện viên nhắc
       this.foldOrder = [];
+      this.dir = dir;             // chiều đi lượt: -1 ngược chiều kim đồng hồ
+      this.lastWinner = null;     // ghế thắng ván trước (người ngồi sau họ rút đầu ván này)
+      this.dealLog = [];          // các lá đã rút trong ván, đúng thứ tự: { id, card, k (vị trí trong cards), round }
+      this.draws = [];            // mỗi vòng rút: { round, first, why, by, card } để giao diện giải thích ai rút trước
+      this.lastRound = [];        // vòng rút lá ngửa gần nhất: [{ id, card }] theo thứ tự rút
       this.rng = rng;
       this.handNo = 0;
       this.phase = 'idle';
@@ -399,10 +433,57 @@
         p.stack -= a; p.committed += a;
         if (p.stack === 0) p.allIn = true;
       }
-      for (const p of seated) p.cards.push(this.deck.shift());
-      for (const p of seated) p.cards.push(this.deck.shift());
+      this.dealLog = []; this.draws = [];
+      // Vòng 1 (lá ngửa) và vòng 2 (lá tẩy): bắt đầu từ người ngồi sau người thắng ván trước; ván đầu thì từ ghế 0
+      const n = this.players.length, w = this.lastWinner;
+      const first = w === null ? 0 : (((w + this.dir) % n) + n) % n;
+      const order = this.orderFrom(first);
+      const why = w === null ? 'first' : 'winner';
+      const up = {};
+      for (const id of order) { up[id] = this.deck.shift(); this.dealLog.push({ id, card: up[id], k: 1, round: 1 }); }
+      for (const id of order) {
+        const p = this.players[id], h = this.deck.shift();
+        p.cards.push(h, up[id]);
+        this.dealLog.push({ id, card: h, k: 0, round: 2 });
+      }
+      this.draws.push({ round: 1, first: order[0], why, by: w }, { round: 2, first: order[0], why, by: w });
+      this.lastRound = order.map((id) => ({ id, card: up[id] }));
+      this.emit(w === null ? `${this.players[order[0]].name} rút trước` : `${this.players[order[0]].name} rút trước (ngồi sau ${this.players[w].name}, người thắng ván trước)`);
       this.street = 2;
+      this.drawRound();          // lá ngửa thứ hai, rồi mới tố
       this.beginRound();
+    }
+
+    // Các ghế còn bài, đi theo chiều lượt, bắt đầu từ ghế start (tính cả start nếu ghế đó còn bài)
+    orderFrom(start) {
+      const n = this.players.length, out = [];
+      for (let k = 0; k < n; k++) {
+        const p = this.players[(((start + this.dir * k) % n) + n) % n];
+        if (!p.out && !p.folded) out.push(p.id);
+      }
+      return out;
+    }
+
+    /* Rút thêm một lá ngửa cho mọi nhà còn bài. Người rút đầu: chủ của lá ngửa to nhất ở vòng rút lá ngửa liền trước
+     * (chỉ so số; bằng nhau thì ai rút trước ở vòng đó); nhà đó đã úp bỏ thì người còn bài kế tiếp rút đầu. */
+    drawRound() {
+      let top = this.lastRound[0];
+      for (const x of this.lastRound) if (rankOf(x.card) > rankOf(top.card)) top = x;
+      const order = this.orderFrom(top.id);
+      const k = this.street;                 // vị trí lá mới trong cards
+      this.street++;
+      this.lastRound = [];
+      for (const id of order) {
+        const c = this.deck.shift();
+        this.players[id].cards.push(c);
+        this.dealLog.push({ id, card: c, k, round: this.street });
+        this.lastRound.push({ id, card: c });
+      }
+      const owner = this.players[top.id], lead = this.players[order[0]];
+      this.draws.push({ round: this.street, first: order[0], why: 'high', by: top.id, card: top.card });
+      this.emit(`Lá ${this.street}: ${lead.name} rút trước` + (owner === lead
+        ? ` (lá ngửa to nhất vòng trước: ${cardLabel(top.card)})`
+        : ` (lá to nhất vòng trước là ${cardLabel(top.card)} của ${owner.name} đã úp bỏ)`));
     }
 
     beginRound() {
@@ -414,7 +495,7 @@
       this.phase = 'betting';
       const first = this.bestShowing();
       this.toAct = this.nextFrom(first.id, true);
-      this.emit(`— Vòng cược ${this.street - 1} (${this.street} lá). ${first.name} có bài ngửa lớn nhất, nói trước`, 'street');
+      this.emit(`— Vòng cược ${this.street - 2} (${this.street} lá). ${first.name} có bài ngửa lớn nhất, nói trước`, 'street');
     }
 
     bestShowing() {
@@ -430,7 +511,7 @@
     nextFrom(i, inclusive) {
       const n = this.players.length;
       for (let k = inclusive ? 0 : 1; k <= n; k++) {
-        const p = this.players[(i + k) % n];
+        const p = this.players[(((i + this.dir * k) % n) + n) % n];
         if (p.out || p.folded || p.allIn) continue;
         if (!p.acted || p.bet < this.currentBet) return p.id;
       }
@@ -500,8 +581,7 @@
     proceed() {
       if (this.phase !== 'between') return;
       if (this.street >= 5) return this.showdown();
-      for (const p of this.live()) p.cards.push(this.deck.shift());
-      this.street++;
+      this.drawRound();
       this.beginRound();
     }
 
@@ -509,6 +589,7 @@
       const w = this.live()[0];
       const amount = this.pot;
       w.stack += amount;
+      this.lastWinner = w.id;
       this.phase = 'done'; this.toAct = -1;
       this.results = { byFold: true, pots: [{ amount, winners: [w.id] }], net: this.netOf({ [w.id]: amount }) };
       this.gather();
@@ -536,6 +617,7 @@
         prev = L;
       });
       for (const id in won) this.players[id].stack += won[id];
+      this.lastWinner = pots.length ? pots[0].winners[0] : live[0].id;     // người có bài lớn nhất bàn
       this.phase = 'done'; this.toAct = -1;
       this.results = { byFold: false, pots, net: this.netOf(won), hands: Object.fromEntries(live.map((p) => [p.id, describe(p.cards)])) };
       this.gather();
@@ -549,7 +631,7 @@
     gather() {
       const folded = this.foldOrder.map((id) => this.players[id]);
       const rest = this.players.filter((p) => !p.out && !p.folded);
-      const blocks = [...folded, ...rest].map((p) => ({ id: p.id, name: p.name, cards: p.cards.slice() }));
+      const blocks = [...folded, ...rest].map((p) => ({ id: p.id, name: p.name, cards: drawnOrder(p.cards) }));
       this.prevGather = blocks;
       this.prevOrder = collect(blocks.map((b) => b.cards), this.deck.slice());
     }
@@ -651,7 +733,7 @@
    *    kèm một phần nhỏ làm bừa (HABIT_NOISE). HABIT_K: quy tắc gốc nặng bằng ngần ấy lần quan sát. */
   const HUMAN_RULE = { valueRel: 1.35, raiseRel: 1.6, margin: 0, bluff: 0, pressure: 0, raiseProb: 1, strict: true };
   const HABIT_K = 4, HABIT_NOISE = 0.06, HABIT_SD = 0.035;
-  // mỗi mục: [số lần gặp tình huống, số lần họ làm, số lần quy tắc gốc dự tính họ làm]; tách lá 2 và các lá sau
+  // mỗi mục: [số lần gặp tình huống, số lần họ làm, số lần quy tắc gốc dự tính họ làm]; tách vòng cược đầu (3 lá) và các vòng sau
   const newHabit = () => [0, 1].map(() => ({ bet: [0, 0, 0], raise: [0, 0, 0], stay: [0, 0, 0] }));
   const BOT_ITERS = 1200, READ_ITERS = 300;
 
@@ -780,7 +862,7 @@
    *   probs(e): xác suất từng hành động nếu tỉ lệ thắng họ tự thấy là e;
    *   rule: quy tắc gốc dự tính họ tố / tố lại / ở lại bao nhiêu phần trong đúng tình huống này (để ghi vào thói quen). */
   function habitModel(game, i, c) {
-    const H = game.habit || (game.habit = newHabit()), hb = H[game.street === 2 ? 0 : 1];
+    const H = game.habit || (game.habit = newHabit()), hb = H[game.street <= 3 ? 0 : 1];
     const eq = classEq(game, i), w = game.reads.w[i], seen = publicMask(game);
     const arr = [];
     let tot = 0, fB = 0, fR = 0, fS = 0;
@@ -821,7 +903,7 @@
   }
   // Ghi nhận thêm một lần quan sát vào thói quen của người chưa rõ kiểu
   function learnHabit(game, c, type, rule) {
-    const H = game.habit || (game.habit = newHabit()), hb = H[game.street === 2 ? 0 : 1];
+    const H = game.habit || (game.habit = newHabit()), hb = H[game.street <= 3 ? 0 : 1];
     const add = (h, did, exp) => { h[0]++; if (did) h[1]++; h[2] += exp; };
     if (c.toCall === 0) { if (c.canRaise) add(hb.bet, type === 'raise', rule.bet); return; }
     add(hb.stay, type !== 'fold', rule.stay);
@@ -1029,7 +1111,7 @@
   const api = { RANKS, SUITS, CAT_NAMES, RULESETS, STYLES, rankOf, suitOf, cardLabel, isRed, newDeck, shuffle,
     classify, scoreOf, describe, handFrequencies, drawOut, equity, equityDetail, Game, analyze, grade, botDecide, pct,
     SHUFFLES, riffle, overhand, cut, shuffleBy, collect, startClass, startClassLabel,
-    readOf, holeHelps, holeClasses, simpleProbs, proPlan, proProbs, rangesFor, HUMAN_RULE, scoreOfSlow };
+    readOf, holeHelps, holeClasses, simpleProbs, proPlan, proProbs, rangesFor, HUMAN_RULE, scoreOfSlow, DIR, dealAll, drawnOrder };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Xito = api;
 })(typeof window !== 'undefined' ? window : globalThis);

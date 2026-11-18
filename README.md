@@ -2,6 +2,18 @@
 
 Game xì tố bộ 24 lá (9, 10, J, Q, K, A × 4 chất) để luyện kỹ năng: chơi với 1–3 đối thủ máy, có nặn bài, tỉ lệ thắng, ngưỡng hòa vốn và chấm điểm từng quyết định.
 
+## Luật rút bài
+
+Lượt đi ngược chiều kim đồng hồ (người bên phải bạn đi sau bạn).
+
+1. Ván mới, người ngồi sau người thắng ván trước rút đầu tiên, người thắng rút cuối. Ván đầu của bàn thì bạn rút đầu.
+2. Vòng 1 mỗi nhà rút một lá ngửa. Vòng 2 mỗi nhà rút lá tẩy, úp xuống, cùng thứ tự.
+3. Chưa tố vội: mỗi nhà rút thêm một lá ngửa nữa. Vòng cược đầu bắt đầu khi mỗi nhà có 3 lá, nên một ván có ba vòng cược (3, 4, 5 lá).
+4. Từ lá thứ 3 trở đi, ai có lá ngửa to nhất ở vòng rút lá ngửa liền trước thì rút đầu. Chỉ so số, không so chất; bằng nhau thì ai rút trước ở vòng đó được ưu tiên. Nhà đó đã úp bỏ thì người còn bài ngồi kế sau họ rút đầu.
+5. Ai có bài ngửa lớn nhất thì nói trước ở mỗi vòng cược.
+
+Phần này nằm trong `Game.startHand()` và `Game.drawRound()` của `xito-engine.js`; `dealAll()` là bản không ai bỏ bài, dùng cho các mô phỏng.
+
 ## Cài lên điện thoại
 
 **Android:** vào mục [Releases](../../releases/tag/android-latest), tải `XiTo24.apk` về máy rồi mở để cài. Nếu máy hỏi, cho phép cài ứng dụng từ nguồn này. Mỗi lần có code mới, GitHub Actions tự build lại bản APK; bản mới cài đè lên bản cũ, không mất thống kê.

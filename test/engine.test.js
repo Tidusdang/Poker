@@ -51,6 +51,71 @@ for (const n of [2, 3, 4]) {
 }
 console.log('Tất cả test đều qua');
 
+// luật rút bài: ai rút trước, lá ngửa rồi lá tẩy, rút lá thứ 3 rồi mới tố, các vòng sau theo lá ngửa to nhất
+{
+  // ví dụ của người chơi: Bạn (ghế 0) rút sau người thắng, ngửa K; Bác Sáu (ghế 3) ngồi sau Bạn ngửa A;
+  // Chị Tư (ghế 2) ngửa Q; Anh Ba (ghế 1, người thắng ván trước) cũng ngửa A → Bác Sáu rút lá thứ 3 đầu tiên
+  const deck = H('K♣ A♣ Q♣ A♦').concat(H('9♣ 9♦ 9♥ 9♠'), H('10♣ 10♦ 10♥ J♣'), H('J♦ J♥ J♠ Q♦'), H('Q♥ Q♠ K♦ K♥'), H('K♠ A♥ A♠ 10♠'));
+  const hs = X.dealAll(deck, 4, 0);
+  assert.deepStrictEqual(hs.map((h) => h[1]), H('K♣ A♦ Q♣ A♣'), 'vòng 1 (lá ngửa) rút theo thứ tự ghế 0 → 3 → 2 → 1');
+  assert.deepStrictEqual(hs.map((h) => h[0]), H('9♣ 9♠ 9♥ 9♦'), 'vòng 2 là lá tẩy, cùng thứ tự');
+  assert.deepStrictEqual(hs.map((h) => h[2]), H('J♣ 10♥ 10♦ 10♣'), 'lá thứ 3: Bác Sáu (ghế 3) rút đầu vì có A và ngồi gần sau Bạn hơn Anh Ba');
+  // lá thứ 4: lá ngửa to nhất của vòng lá thứ 3 là J♣ (ghế 0) → ghế 0 rút đầu
+  assert.deepStrictEqual(hs.map((h) => h[3]), H('J♦ Q♦ J♠ J♥'));
+  assert.deepStrictEqual(X.drawnOrder(hs[0]), H('K♣ 9♣ J♣ J♦').concat(hs[0][4]), 'gom bài giữ thứ tự lúc rút: ngửa 1, tẩy, ngửa 2, ...');
+
+  // trong ván thật (có người bỏ bài): tự tính lại thứ tự rút và so với nhật ký rút của engine
+  let seed = 7; const rng = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  for (const n of [2, 3, 4]) {
+    const g = new X.Game({ players: Array.from({ length: n }, (_, i) => ({ name: 'P' + i, stack: 1000, style: ['sly', 'loose', 'tight'][i % 3] })), ante: 10, rng });
+    assert.strictEqual(g.dir, -1, 'lượt đi ngược chiều kim đồng hồ');
+    const from = (start, ok) => { const o = []; for (let k = 0; k < n; k++) { const id = (((start - k) % n) + n) % n; if (ok(id)) o.push(id); } return o; };
+    let foldedLead = 0;
+    for (let h = 0; h < 300; h++) {
+      for (const p of g.players) p.stack = 1000;
+      const prevWinner = g.lastWinner;
+      g.startHand();
+      const first = prevWinner === null ? 0 : (((prevWinner - 1) % n) + n) % n;
+      const o1 = from(first, () => true);
+      assert.strictEqual(o1[o1.length - 1], prevWinner === null ? o1[o1.length - 1] : prevWinner, 'người thắng ván trước rút cuối');
+      assert.deepStrictEqual(g.dealLog.slice(0, n).map((d) => d.id), o1, 'vòng 1 bắt đầu từ người ngồi sau người thắng');
+      assert(g.dealLog.slice(0, n).every((d) => d.k === 1 && d.round === 1), 'vòng 1 là lá ngửa');
+      assert.deepStrictEqual(g.dealLog.slice(n, 2 * n).map((d) => d.id), o1, 'vòng 2 cùng thứ tự');
+      assert(g.dealLog.slice(n, 2 * n).every((d) => d.k === 0 && d.round === 2), 'vòng 2 là lá tẩy');
+      assert(g.street === 3 && g.players.every((p) => p.cards.length === 3) && g.phase === 'betting', 'rút đủ 3 lá rồi mới tố');
+      for (const d of g.dealLog) assert.strictEqual(g.players[d.id].cards[d.k], d.card);
+      let prev = g.dealLog.slice(0, n), pos = 2 * n;
+      const checkRound = () => {          // vòng rút lá ngửa mới nhất trong nhật ký phải bắt đầu đúng người
+        const round = g.dealLog.slice(pos);
+        let top = prev[0]; for (const x of prev) if (X.rankOf(x.card) > X.rankOf(top.card)) top = x;
+        const expect = from(top.id, (id) => round.some((d) => d.id === id));
+        assert.deepStrictEqual(round.map((d) => d.id), expect, 'người có lá ngửa to nhất vòng trước rút đầu');
+        if (!round.some((d) => d.id === top.id)) foldedLead++;
+        prev = round; pos = g.dealLog.length;
+      };
+      checkRound();
+      while (g.phase !== 'done') {
+        if (g.phase === 'between') {
+          const liveBefore = g.live().map((p) => p.id).sort(), at5 = g.street >= 5;
+          g.proceed();
+          if (!at5) { assert.deepStrictEqual(g.dealLog.slice(pos).map((d) => d.id).sort(), liveBefore, 'chỉ nhà còn bài mới rút'); checkRound(); }
+          continue;
+        }
+        const i = g.toAct, a = X.botDecide(g, i, rng);
+        g.act(i, a.type, a.raiseTo);
+        if (g.phase === 'betting') {       // lượt cược đi ngược chiều kim đồng hồ: người kế tiếp nằm trong các ghế i-1, i-2, ...
+          const cand = from(i - 1, (id) => !g.players[id].folded && !g.players[id].allIn);
+          assert(cand.includes(g.toAct));
+        }
+      }
+      assert(g.lastWinner !== null && g.results.net[g.lastWinner] > 0, 'người thắng ván được ghi lại');
+      assert.deepStrictEqual([...g.prevOrder].sort((x, y) => x - y), X.newDeck(), 'gom bài đủ 24 lá');
+    }
+    if (n > 2) assert(foldedLead > 0, 'phải gặp trường hợp chủ lá to nhất đã úp bỏ');
+  }
+  console.log('Luật rút bài: OK');
+}
+
 // xào bài như ngoài đời: mọi kiểu xào đều cho ra đủ 24 lá, không mất/trùng lá; bài mang sang ván sau
 {
   const rng = () => Math.random();
@@ -174,10 +239,11 @@ console.log('Tất cả test đều qua');
 
   const st = T.runBetting({ n: 3, hands: 40, seed: 1 });
   assert.strictEqual(st.hands, 40);
-  assert.strictEqual(st.alive[1][0][0][0] + st.alive[1][0][1][0], 40, 'đầu ván máy nào cũng còn trong ván');
+  assert.strictEqual(st.alive[1][1][0][0] + st.alive[1][1][1][0], 40, 'đầu vòng cược đầu (3 lá) máy nào cũng còn trong ván');
+  assert.strictEqual(st.alive[1][0][0][0] + st.alive[1][0][1][0], 0, 'không còn vòng cược ở 2 lá');
   assert(Math.abs(st.net.reduce((x, y) => x + y[0], 0)) < 1e-6, 'tổng lời lỗ cả bàn bằng 0');
   const st4 = T.runBetting({ n: 4, hands: 30, seed: 2 });
-  assert(st4.proRead[0][0][0] > 0, 'người lão luyện có đoán tẩy của ghế Bạn');
+  assert(st4.proRead[0][1][0] > 0, 'người lão luyện có đoán tẩy của ghế Bạn (cuối vòng cược đầu, 3 lá)');
   assert(Math.abs(st4.net.reduce((x, y) => x + y[0], 0)) < 1e-6);
   const ses = T.runSessions({ n: 4, sessions: 2, len: 20, marks: [10, 20], seed: 5 });
   assert(ses.length === 2 && ses[0].length === 2 && ses[0][1].length === 4);
